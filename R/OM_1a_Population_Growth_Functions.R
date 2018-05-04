@@ -203,6 +203,52 @@ correct.biomass.ASPG <- function(biol, year, season){
 }
         
         
-    
+#-------------------------------------------------------------------------------
+# gadgetGrowth(biol, GDGT, fleets, biol.control)
+# - OUTPUT: list(biol = biol, GDGT = GDGT) - Upadated FLBiol and GDGT objects.
+#-------------------------------------------------------------------------------
+
+gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
+
+	GDGT <- GDGTs
+
+	print(paste("Runing Gadget", season, year, GDGT$gadget.inputDir))
 
 
+	# Check if this is gadget first run?
+	if(isGadgetInitialized() == FALSE){
+		print("First run!")
+
+		setwd(GDGT$gadget.inputDir)
+
+		# Load parameters
+		gadget(c("-s", "-main", GDGT$gadget.mainFile, "-i", GDGT$gadget.paramFile))
+
+		# Initialize simulation
+		initSim()
+
+		# Run first year
+		status <- yearSim()
+	}else{
+		# Run subsequent steps
+		status <- yearSim()
+
+	}
+
+	# If reaches the end of gadget simulation
+	if(status["finished"] == 1){
+		# Sim cleanup
+		finalizeSim()
+
+		# Get the output
+		out <- finalize()
+	}
+
+	GDGT$currentYear <- year
+	GDGT$currentSeason <- season
+
+	# (HACK) Keep running ASPG
+	tmp <- ASPG(biols, SRs, fleets, year, season, stknm)
+
+	return(list(biol = tmp$biol, SR=tmp$SR, GDGT = GDGT))
+}

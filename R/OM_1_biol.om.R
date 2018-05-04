@@ -15,7 +15,7 @@
 # Changed: 27/10/2010 12:34:33
 #-------------------------------------------------------------------------------
 
-biols.om <- function(biols, fleets, SRs, BDs, covars, biols.ctrl, year, season){
+biols.om <- function(biols, fleets, GDGTs, SRs, BDs, covars, biols.ctrl, year, season){
 
     stnms <- names(biols)
     
@@ -23,15 +23,18 @@ biols.om <- function(biols, fleets, SRs, BDs, covars, biols.ctrl, year, season){
         # population dynamic model
         dyn.model <- biols.ctrl[[st]]$growth.model   
         
-        res <- eval(call(dyn.model, biols = biols, fleets = fleets, SRs = SRs, BDs = BDs, stknm = st, year = year, season = season, ctrl = biols.ctrl, covars = covars)) 
+        res <- eval(call(dyn.model, biols = biols, fleets = fleets, GDGTs=GDGTs, SRs = SRs, BDs = BDs, stknm = st, year = year, season = season, ctrl = biols.ctrl, covars = covars)) 
          
         biols[[st]] <- res$biol
         
         if(!is.null(SRs[[st]]))  SRs[[st]] <- res$SR
         if(!is.null(BDs[[st]]))  BDs[[st]] <- res$BD
+	# Add gadget
+	if(!is.null(GDGTs[[st]]))  GDGTs[[st]] <- res$GDGT
+
     }
     
-    return(list(biols = biols, SRs = SRs, BDs = BDs))
+    return(list(biols = biols, GDGTs=GDGTs, SRs = SRs, BDs = BDs))
 
 }
 

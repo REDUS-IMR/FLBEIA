@@ -208,7 +208,7 @@
 #-------------------------------------------------------------------------------
 
 # @export
-FLBEIA <- function(biols, SRs = NULL, BDs = NULL, fleets, covars = NULL, indices = NULL, advice = NULL, main.ctrl, biols.ctrl, 
+FLBEIA <- function(biols, GDGTs=NULL, SRs = NULL, BDs = NULL, fleets, covars = NULL, indices = NULL, advice = NULL, main.ctrl, biols.ctrl, 
         fleets.ctrl, covars.ctrl, obs.ctrl, assess.ctrl,  advice.ctrl){
 
     # Extract the common dimensions [year, season, it] from the 1st Biol.
@@ -332,10 +332,12 @@ FLBEIA <- function(biols, SRs = NULL, BDs = NULL, fleets, covars = NULL, indices
         
         cat('------------ BIOLOGICAL OM ------------\n')
             # - Biologic OM.
-            res   <- biols.om (biols = biols, fleets = fleets, SRs = SRs, BDs = BDs, covars = covars, biols.ctrl = biols.ctrl, year = yr, season = ss)
+            res   <- biols.om (biols = biols, fleets = fleets, GDGTs=GDGTs, SRs = SRs, BDs = BDs, covars = covars, biols.ctrl = biols.ctrl, year = yr, season = ss)
             biols <- res$biols
             SRs   <- res$SRs
             BDs   <- res$BDs
+	    # For gadget
+	    GDGTs <- res$GDGTs
 
         cat('------------ FLEETS OM ------------\n')
             # - Fleets OM.
