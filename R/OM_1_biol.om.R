@@ -29,8 +29,9 @@ biols.om <- function(biols, fleets, GDGTs, SRs, BDs, covars, biols.ctrl, year, s
         
         if(!is.null(SRs[[st]]))  SRs[[st]] <- res$SR
         if(!is.null(BDs[[st]]))  BDs[[st]] <- res$BD
+
 	# Add gadget
-	if(!is.null(GDGTs[[st]]))  GDGTs[[st]] <- res$GDGT
+	if(!is.null(GDGTs))  GDGTs <- res$GDGT
 
     }
     

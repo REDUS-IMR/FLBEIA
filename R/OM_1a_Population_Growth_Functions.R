@@ -210,10 +210,12 @@ correct.biomass.ASPG <- function(biol, year, season){
 
 gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 
+	biol <- biols[[stknm]]
+	SR   <- SRs[[stknm]]
+
 	GDGT <- GDGTs
 
 	print(paste("Runing Gadget", season, year, GDGT$gadget.inputDir))
-
 
 	# Check if this is gadget first run?
 	if(isGadgetInitialized() == FALSE){
@@ -227,16 +229,58 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 		# Initialize simulation
 		initSim()
 
-		# Run first year
-		status <- yearSim()
-	}else{
-		# Run subsequent steps
-		status <- yearSim()
+		simInfo <- getEcosystemInfo()
+		startYear <- simInfo[["time"]][["currentYear"]]
+		curYear <- startYear
 
+		# Run until the current FLBEIA year
+		while((curYear - startYear + 1) < year) {
+			status <- yearSim()
+			curYear <- status[["currentYear"]]
+		}
+
+		print(paste("Year now is", curYear, (curYear - startYear + 1)))
+
+		# Run for this year and collect the stats
+		stats <- runYear()
+
+		# Record the start year
+		GDGT$startYear <- startYear
+
+		# This must be the first stock
+		GDGT$currentStock <- 1
+
+		# Create the list for the stats
+		GDGT["currentStats"] <- list()
+
+		# Put the statistics information for this year
+		GDGT["currentStats"][as.character(year)] <- stats
+	}else{
+		# Check whether this is another species or a start of the year
+		simInfo <- getEcosystemInfo()
+		curYear <- simInfo[["time"]][["currentYear"]]
+		startYear <- GDGT$startYear
+
+		print(paste("Year now is", curYear, (curYear - startYear + 1)))
+
+		if((curYear - startYear + 1) == year){
+			# Run subsequent steps
+			stats <- runYear()
+			# Start from the first stock
+			GDGT$currentStock <- 1
+		}else{
+			# Increment stock number
+			GDGT$currentStock <- GDGT$currentStock + 1
+			stats <- GDGT$currentStats
+		}
 	}
 
+	print("Current gadget information:\n")
+	simInfo <- getEcosystemInfo()
+	print(simInfo)
+
 	# If reaches the end of gadget simulation
-	if(status["finished"] == 1){
+	if(simInfo[["time"]][["finished"]] == 1){
 		# Sim cleanup
 		finalizeSim()
 
@@ -244,11 +288,47 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 		out <- finalize()
 	}
 
-	GDGT$currentYear <- year
-	GDGT$currentSeason <- season
+	stkNo <- GDGT$currentStock
 
-	# (HACK) Keep running ASPG
-	tmp <- ASPG(biols, SRs, fleets, year, season, stknm)
+	# Fill Biol with stock information and SRs with SSB and Recruitments
+	# Here we assume stock number in FLBEIA is similar to gadget output
 
-	return(list(biol = tmp$biol, SR=tmp$SR, GDGT = GDGT))
+	# Sum SSB
+	if(ncol(stats[["stocks"]][[stkNo]][["ssb"]]) == 0)
+		ssb <- NA
+	else
+		ssb <- sum(stats[["stocks"]][[stkNo]][["ssb"]][,"SSB"])
+	# Sum Recruitment
+	if(ncol(stats[["stocks"]][[stkNo]][["rec"]]) == 0)
+		rec <- NA
+	else
+		rec <- sum(stats[["stocks"]][[stkNo]][["rec"]][,"Rec"])
+
+	SR@ssb["all", year] <- ssb
+	SR@rec[1, year] <- rec
+
+	# For stocks number and weight
+
+	dfTmp <- as.data.frame(stats[["stocks"]][[stkNo]][["stk"]])
+
+	wt <- aggregate(number*meanWeights ~ year + area + age, data=dfTmp, FUN=sum)
+	colnames(wt) <-  c("year", "area", "age", "data")
+	print(wt)
+	n <- aggregate(number ~ year + area + age, data=dfTmp, FUN=sum)
+	colnames(n) <- c("year", "area", "age", "data")
+	print(n)
+
+	minAge <- min(as.data.frame(biols[[stkNo]]@wt[,year])$age)
+	maxAge <- max(as.data.frame(biols[[stkNo]]@wt[,year])$age)
+	biol@wt[minAge:maxAge,year] <- wt[["data"]]
+	biol@n[minAge:maxAge,year] <- n[["data"]]
+
+	print(biol@wt)
+	print(biol@n)
+	print(SR@ssb)
+	print(SR@rec)
+
+	print("Gadget ends")
+
+	return(list(biol = biol, SR=SR, GDGT = GDGT))
 }
