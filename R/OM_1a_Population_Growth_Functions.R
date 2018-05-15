@@ -251,10 +251,10 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 		GDGT$currentStock <- 1
 
 		# Create the list for the stats
-		GDGT["currentStats"] <- list()
+		GDGT[["currentStats"]] <- list()
 
 		# Put the statistics information for this year
-		GDGT["currentStats"][as.character(year)] <- stats
+		GDGT[["currentStats"]][[as.character(year)]] <- stats
 	}else{
 		# Check whether this is another species or a start of the year
 		simInfo <- getEcosystemInfo()
@@ -271,7 +271,7 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 		}else{
 			# Increment stock number
 			GDGT$currentStock <- GDGT$currentStock + 1
-			stats <- GDGT$currentStats
+			stats <- GDGT[["currentStats"]][[as.character(year)]]
 		}
 	}
 
@@ -298,14 +298,24 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 		ssb <- NA
 	else
 		ssb <- sum(stats[["stocks"]][[stkNo]][["ssb"]][,"SSB"])
-	# Sum Recruitment
-	if(ncol(stats[["stocks"]][[stkNo]][["rec"]]) == 0)
-		rec <- NA
-	else
-		rec <- sum(stats[["stocks"]][[stkNo]][["rec"]][,"Rec"])
 
 	SR@ssb["all", year] <- ssb
-	SR@rec[1, year] <- rec
+
+        # Recruitment (TODO: Defining start age)
+	if(ncol(stats[["stocks"]][[stkNo]][["rec"]][["spawn"]]) == 0)
+		recA <- 0
+	else
+		recA <- sum(stats[["stocks"]][[stkNo]][["rec"]][["spawn"]][,"Rec"])
+
+	if(ncol(stats[["stocks"]][[stkNo]][["rec"]][["renew"]]) == 0)
+		recB <- 0
+	else
+		recB <- sum(stats[["stocks"]][[stkNo]][["rec"]][["renew"]][,"renewalNumber"])
+
+	if(recA + recB == 0)
+		SR@rec[1, year] <- NA
+	else
+		SR@rec[1, year] <- recA + recB
 
 	# For stocks number and weight
 
