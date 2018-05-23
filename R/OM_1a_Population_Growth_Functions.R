@@ -249,9 +249,6 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 		# Record the start year
 		GDGT$startYear <- startYear
 
-		# This must be the first stock
-		GDGT$currentStock <- 1
-
 		# Create the list for the stats
 		GDGT[["currentStats"]] <- list()
 
@@ -271,10 +268,8 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 			# Put the statistics information for this year
 			GDGT[["currentStats"]][[as.character(year)]] <- stats
 			# Start from the first stock
-			GDGT$currentStock <- 1
 		}else{
-			# Increment stock number
-			GDGT$currentStock <- GDGT$currentStock + 1
+			# Get stats for the current year
 			stats <- GDGT[["currentStats"]][[as.character(year)]]
 		}
 	}
@@ -292,7 +287,8 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 		out <- finalize()
 	}
 
-	stkNo <- GDGT$currentStock
+	# Get current stock number
+	stkNo <- match(stknm, names(biols), nomatch = 0)
 
 	# Fill Biol with stock information and SRs with SSB and Recruitments
 	# Here we assume stock number in FLBEIA is similar to gadget output
@@ -323,7 +319,7 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 
 	# For stocks number and weight
 
-	dfTmp <- as.data.frame(stats[["stocks"]][[stkNo]][["stk"]])
+	dfTmp <- stats[["stocks"]][[stkNo]][["stk"]]
 
 	wt <- aggregate(number*meanWeights ~ year + area + age, data=dfTmp, FUN=sum)
 	colnames(wt) <-  c("year", "area", "age", "data")
@@ -332,10 +328,8 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 	colnames(n) <- c("year", "area", "age", "data")
 	print(n)
 
-	minAge <- min(as.data.frame(biols[[stkNo]]@wt[,year])$age)
-	maxAge <- max(as.data.frame(biols[[stkNo]]@wt[,year])$age)
-	biol@wt[minAge:maxAge,year] <- wt[["data"]]
-	biol@n[minAge:maxAge,year] <- n[["data"]]
+	biol@wt[,year,,season] <- wt[,"data"]
+	biol@n[,year,,season] <- n[,"data"]
 
 	print(biol@wt)
 	print(biol@n)
