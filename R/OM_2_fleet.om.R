@@ -17,7 +17,7 @@
 # Changed: 09/12/2010 08:36:59
 #-------------------------------------------------------------------------------
 
-fleets.om <- function(fleets, biols, BDs, covars, advice, biols.ctrl, fleets.ctrl, advice.ctrl, year, season){
+fleets.om <- function(fleets, biols, GDGTs, SRs, BDs, covars, advice, biols.ctrl, fleets.ctrl, advice.ctrl, year, season){
    
     flnms <- names(fleets)
     
@@ -52,10 +52,17 @@ fleets.om <- function(fleets, biols, BDs, covars, advice, biols.ctrl, fleets.ctr
     
     # 2. Update landings and discards (total and at age).  [seasonal].
 
-     print('~~~~~~ UPDATE CATCH ~~~~~~')
+    print('~~~~~~ UPDATE CATCH ~~~~~~')
 
-    fleets <- updateCatch(fleets, biols, BDs, advice, biols.ctrl, fleets.ctrl, advice.ctrl, year = year, season = season)
+    catchRet <- updateCatch(fleets, biols, GDGTs, SRs, BDs, advice, biols.ctrl, fleets.ctrl, advice.ctrl, year = year, season = season, covars = covars)
     
+    ## For gadget, we need also to update biols
+    fleets <- catchRet$fleets
+    biols <- catchRet$biols
+    SRs   <- catchRet$SRs
+    # For gadget
+    GDGTs <- catchRet$GDGTs
+
     #  3. Calculate price. [seasonal].
     print('~~~~~~~~~~ PRICE ~~~~~~~~~~')
 
@@ -94,7 +101,7 @@ fleets.om <- function(fleets, biols, BDs, covars, advice, biols.ctrl, fleets.ctr
     
     fleets <- FLFleetsExt(fleets)
     
-    return(list(fleets = fleets, covars = covars, fleets.ctrl = fleets.ctrl))
+    return(list(fleets = fleets, biols=biols, SRs = SRs, GDGTs = GDGTs, covars = covars, fleets.ctrl = fleets.ctrl))
 
 }
 

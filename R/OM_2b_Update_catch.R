@@ -16,7 +16,7 @@
 #-------------------------------------------------------------------------------
 # updateCatch(fleets, biols, year = 1, season = 1)
 #-------------------------------------------------------------------------------
-updateCatch <- function(fleets, biols, BDs, advice, biols.ctrl, fleets.ctrl, advice.ctrl, year = 1, season = 1){
+updateCatch <- function(fleets, biols, GDGTs, SRs, BDs, covars, advice, biols.ctrl, fleets.ctrl, advice.ctrl, year = 1, season = 1){
 
     fleet.names <- names(fleets)
         
@@ -25,12 +25,18 @@ updateCatch <- function(fleets, biols, BDs, advice, biols.ctrl, fleets.ctrl, adv
         flsts <- catchNames(fleets[[flnm]])
         for(st in flsts){
             catch.model <- paste(fleets.ctrl[[flnm]][[st]][['catch.model']], 'CAA', sep = ".")
-            fleets <- eval(call(catch.model, fleets = fleets, biols = biols, BDs = BDs, biols.ctrl = biols.ctrl, fleets.ctrl = fleets.ctrl, advice = advice, advice.ctrl = advice.ctrl, year = year, season = season, flnm = flnm, stknm = st))
+            catchRet <- eval(call(catch.model, fleets = fleets, biols = biols, GDGTs = GDGTs, SRs = SRs, BDs = BDs, biols.ctrl = biols.ctrl, covars = covars, fleets.ctrl = fleets.ctrl, advice = advice, advice.ctrl = advice.ctrl, year = year, season = season, flnm = flnm, stknm = st))
         }
     }
     
+    ## For gadget, we need also to update biols
+    fleets <- catchRet$fleets
+    biols <- catchRet$biols
+    SRs   <- catchRet$SRs
+    # For gadget
+    GDGTs <- catchRet$GDGTs
     
-     fleets <- FLFleetsExt(fleets)
+    fleets <- FLFleetsExt(fleets)
     
     # Correct the catch in case:
     # Age structured: Ca > (Ba*catch.threshold)
@@ -39,11 +45,112 @@ updateCatch <- function(fleets, biols, BDs, advice, biols.ctrl, fleets.ctrl, adv
     fleets <- CorrectCatch(fleets = fleets, biols = biols, BDs = BDs, biols.ctrl = biols.ctrl, fleets.ctrl = fleets.ctrl, year = year, season = season)
     
     
-    return(fleets)
+    return(list(fleets = fleets, biols=biols, SRs = SRs, GDGTs = GDGTs))
 }
 
 
+#-------------------------------------------------------------------------------
+# gadgetCatch(fleets, biols, year = 1, season = 1)
+#-------------------------------------------------------------------------------
+gadgetCatch.CAA  <- function(fleets, biols, GDGTs, SRs, BDs, biols.ctrl, fleets.ctrl, advice, year = 1, season = 1, flnm = 1, stknm = 1, ...){
 
+    yr <- year
+    ss <- season
+    f  <- flnm
+    st <- stknm
+
+    fleets <- unclass(fleets)
+
+    fl    <- fleets[[f]]
+    sts   <- catchNames(fl)
+    mtnms <- names(fl@metiers)
+
+    if(!(st %in% sts)) return(list(fleets = fleets, biols = biols, SRs = SRs, GDGTs = GDGTs))
+
+    print(paste0("Name: ",sts))
+
+    runBio <- FALSE
+
+    # If it's a start of the year, run BioOM
+    if(isGadgetInitialized() == FALSE){
+	runBio <- TRUE
+    }else{
+        # Check whether this is a start of a year
+	simInfo <- getEcosystemInfo()
+	curYear <- simInfo[["time"]][["currentYear"]]
+	startYear <- GDGTs$startYear
+
+	if((curYear - startYear + 1) == year){
+           runBio <- TRUE
+	}
+    }
+
+    if(runBio == TRUE){
+	# Run Gadget for this specific year
+	GDGTs$runNow <- TRUE
+        cat('------------ BIOLOGICAL OM (UNDER GADGET)------------\n')
+        # - Biologic OM.
+        res   <- biols.om (biols = biols, fleets = fleets, GDGTs = GDGTs, SRs = SRs, BDs = BDs, covars = covars, biols.ctrl = biols.ctrl, year = yr, season = ss)
+        biols <- res$biols
+        SRs   <- res$SRs
+        # For gadget
+        GDGTs <- res$GDGTs
+        GDGTs$runNow <- FALSE
+    }
+
+    # Collect stats for this year
+    stats <- GDGTs[["currentStats"]][[as.character(year)]]
+
+    currentFleetNo <- match(f, names(fleets), nomatch = 0)
+    currentStkNo <- match(st, names(biols), nomatch = 0)
+
+    print(paste("Fleet", currentFleetNo, "Stock", currentStkNo))
+
+    for(mt in 1:length(mtnms)){
+
+        if(!(st %in% names(fl@metiers[[mt]]@catches))) next
+
+        cobj <- fl@metiers[[mt]]@catches[[st]]
+
+        catchStat <- stats[["fleets"]][[currentFleetNo]][["catch"]][[currentStkNo]]
+
+	n <- aggregate(numberConsumed ~ year + area + age, data=catchStat, FUN=sum)
+	totalwt <- aggregate(biomassConsumed ~ year + area + age, data=catchStat, FUN=sum)
+
+        print(n)
+        print(totalwt)
+
+        cobj@landings[,yr,,ss] <- sum(totalwt[,"biomassConsumed"])
+        cobj@landings.n[,yr,,ss] <- n[,"numberConsumed"]
+
+        cobj@landings.wt[,yr,,ss] <- totalwt[,"biomassConsumed"]/n[,"numberConsumed"]
+
+        # If the division is by zero
+        cobj@landings.wt[,yr,,ss][is.na(cobj@landings.wt[,yr,,ss])] <- 0
+
+        # When land.wt = 0 <-  land.n = NA => change to 0. (idem for disc.wt)
+        cobj@landings.n[,yr,,ss][is.na(cobj@landings.n[,yr,,ss])] <- 0
+        cobj@discards.n[,yr,,ss][is.na(cobj@discards.n[,yr,,ss])] <- 0
+
+        print("Catch")
+
+	print(cobj@landings)
+        print(cobj@landings.n)
+	print(cobj@landings.wt)
+
+	print("Catch END")
+
+        fl@metiers[[mt]]@catches[[st]] <- cobj
+
+    }
+
+    fleets[[f]] <- fl
+
+
+    fleets <- FLFleetsExt(fleets)
+
+    return(list(fleets = fleets, biols = biols, SRs = SRs, GDGTs = GDGTs))
+}
 
 #-------------------------------------------------------------------------------
 # aggregated.CobbDoug(fleets, biols, year = 1, season = 1)
@@ -186,7 +293,7 @@ CobbDouglasBio.CAA  <- function(fleets, biols, BDs, biols.ctrl, fleets.ctrl, adv
     
 #    fleets <- FLFleetsExt(fleets)
       
-    return(fleets)
+    return(list(fleets = fleets, biols = biols, SRs = SRs, GDGTs = GDGTs))
 }
 
             
@@ -344,7 +451,7 @@ CobbDouglasAge.CAA <- function(fleets, biols, BDs, biols.ctrl, fleets.ctrl, advi
     
 #    fleets <- FLFleetsExt(fleets)
     
-    return(fleets)
+    return(list(fleets = fleets, biols = biols, SRs = SRs, GDGTs = GDGTs))
 }
 
 
@@ -455,7 +562,7 @@ seasonshare.CAA  <- function(fleets, biols, fleets.ctrl, advice, advice.ctrl, ye
   
   fleets <- FLFleetsExt(fleets)
   
-  return(fleets)
+  return(list(fleets = fleets, biols = biols, SRs = SRs, GDGTs = GDGTs))
 }
 
             

@@ -53,7 +53,7 @@ create.fleets.ctrl <- function(fls,  n.fls.stks, fls.stksnames, catch.threshold 
                                 effort.models = NULL, capital.models = NULL, catch.models = NULL, price.models = NULL, flq, ...){
     
     effort.models.available  <- c('fixedEffort', 'SMFB', 'SSFB', 'MaxProfit', 'MaxProfitSeq')
-    catch.models.available   <- c('CobbDouglasAge', 'CobbDouglasBio')
+    catch.models.available   <- c('CobbDouglasAge', 'CobbDouglasBio', 'gadgetCatch')
     price.models.available   <- c('fixedPrice', 'elasticPrice')
     capital.models.available <- c('fixedCapital', 'SCD')
     
@@ -304,4 +304,9 @@ create.elasticPrice.ctrl <- function(resfst, fltname, stkname, largs){
 #                   ** create.CobbDouglasBio.ctrl **
 #-------------------------------------------------------------------------------
 create.CobbDouglasAge.ctrl <- create.CobbDouglasBio.ctrl <- function(resfst, fltname, stkname, largs) return(resfst)
+
+#-------------------------------------------------------------------------------
+#                   ** create.gadgetCatch.ctrl **
+#-------------------------------------------------------------------------------
+create.gadgetCatch.ctrl <- function(resfst, fltname, stkname, largs) return(resfst)
 

@@ -201,11 +201,10 @@ correct.biomass.ASPG <- function(biol, year, season){
         return(biol)
         
 }
-        
-        
+
 #-------------------------------------------------------------------------------
-# gadgetGrowth(biol, GDGT, fleets, biol.control)
-# - OUTPUT: list(biol = biol, GDGT = GDGT) - Upadated FLBiol and GDGT objects.
+# gadgetGrowthReal(biol, GDGT, fleets, biol.control)
+# - OUTPUT: list(biol = biol, SR = SR, GDGT = GDGT) - Upadated FLBiol, SR and GDGT objects.
 #-------------------------------------------------------------------------------
 
 gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
@@ -214,6 +213,9 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 	SR   <- SRs[[stknm]]
 
 	GDGT <- GDGTs
+
+        if(GDGT$runNow != TRUE)
+		return(list(biol = biol, SR = SR, GDGT = GDGT))
 
 	print(paste("Runing Gadget", season, year, GDGT$gadget.inputDir))
 
@@ -266,6 +268,8 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 		if((curYear - startYear + 1) == year){
 			# Run subsequent steps
 			stats <- runYear()
+			# Put the statistics information for this year
+			GDGT[["currentStats"]][[as.character(year)]] <- stats
 			# Start from the first stock
 			GDGT$currentStock <- 1
 		}else{
@@ -340,5 +344,5 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 
 	print("Gadget ends")
 
-	return(list(biol = biol, SR=SR, GDGT = GDGT))
+	return(list(biol = biol, SR = SR, GDGT = GDGT))
 }

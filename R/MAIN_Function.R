@@ -341,10 +341,14 @@ FLBEIA <- function(biols, GDGTs=NULL, SRs = NULL, BDs = NULL, fleets, covars = N
 
         cat('------------ FLEETS OM ------------\n')
             # - Fleets OM.
-            res        <- fleets.om(fleets = fleets, biols = biols, BDs = BDs, covars = covars, advice = advice, biols.ctrl = biols.ctrl, fleets.ctrl = fleets.ctrl, advice.ctrl = advice.ctrl, year = yr, season = ss)
+            res        <- fleets.om(fleets = fleets, biols = biols, GDGTs = GDGTs, SRs = SRs, BDs = BDs, covars = covars, advice = advice, biols.ctrl = biols.ctrl, fleets.ctrl = fleets.ctrl, advice.ctrl = advice.ctrl, year = yr, season = ss)
             fleets     <- res$fleets
             fleets.ctrl <- res$fleets.ctrl
             covars     <- res$covars
+            biols <- res$biols
+            SRs   <- res$SRs
+	    # For gadget
+	    GDGTs <- res$GDGTs
 
         cat('------------ COVARS OM ------------\n')
             # - Covariables OM. (the covariables can affect the covariables themselfs but also the biols and fleets, biols.ctrl and fleets.ctrl)

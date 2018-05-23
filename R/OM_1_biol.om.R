@@ -23,7 +23,7 @@ biols.om <- function(biols, fleets, GDGTs, SRs, BDs, covars, biols.ctrl, year, s
         # population dynamic model
         dyn.model <- biols.ctrl[[st]]$growth.model   
         
-        res <- eval(call(dyn.model, biols = biols, fleets = fleets, GDGTs=GDGTs, SRs = SRs, BDs = BDs, stknm = st, year = year, season = season, ctrl = biols.ctrl, covars = covars)) 
+        res <- eval(call(dyn.model, biols = biols, fleets = fleets, GDGTs = GDGTs, SRs = SRs, BDs = BDs, stknm = st, year = year, season = season, ctrl = biols.ctrl, covars = covars)) 
          
         biols[[st]] <- res$biol
         
