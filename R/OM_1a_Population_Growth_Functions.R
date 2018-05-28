@@ -214,7 +214,7 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 
 	GDGT <- GDGTs
 
-        if(GDGT$runNow != TRUE)
+        if(is.null(GDGT$runNow) || GDGT$runNow != TRUE)
 		return(list(biol = biol, SR = SR, GDGT = GDGT))
 
 	print(paste("Runing Gadget", season, year, GDGT$gadget.inputDir))
