@@ -74,6 +74,8 @@ gadgetCatch.CAA  <- function(fleets, biols, GDGTs, SRs, BDs, biols.ctrl, fleets.
     # If it's a start of the year, run BioOM
     if(isGadgetInitialized() == FALSE){
 	runBio <- TRUE
+        # We will always run gadget at the first run
+        GDGTs$runNow <- TRUE
     }else{
         # Check whether this is a start of a year
 	simInfo <- getEcosystemInfo()
