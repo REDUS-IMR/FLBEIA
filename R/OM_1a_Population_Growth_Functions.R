@@ -328,7 +328,7 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 	colnames(n) <- c("year", "area", "age", "data")
 	print(n)
 
-	biol@wt[,year,,season] <- wt[,"data"]
+	biol@wt[,year,,season] <- wt[,"data"]/n[,"data"]
 	biol@n[,year,,season] <- n[,"data"]
 
 	print(biol@wt)
