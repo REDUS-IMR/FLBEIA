@@ -106,6 +106,9 @@ gadgetCatch.CAA  <- function(fleets, biols, GDGTs, SRs, BDs, biols.ctrl, fleets.
     currentFleetNo <- match(f, names(fleets), nomatch = 0)
     currentStkNo <- match(st, names(biols), nomatch = 0)
 
+    # Set to use future fleets. TODO: Make it dynamic
+    currentFleetNo <- currentFleetNo + 2
+
     print(paste("Fleet", currentFleetNo, "Stock", currentStkNo))
 
     for(mt in 1:length(mtnms)){
