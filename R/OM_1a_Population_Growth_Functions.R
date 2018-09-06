@@ -219,6 +219,12 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 
 	print(paste("Runing Gadget", season, year, GDGT$gadget.inputDir))
 
+	# Name converter
+	curGadgetStockName <- convertStockName[[stknm]]
+
+	# Load params
+	stockParams <- eval(parse(text=paste0(curGadgetStockName, ".params")))
+
 	# Check if this is gadget first run?
 	if(isGadgetInitialized() == FALSE){
 		print("First run!")
@@ -235,12 +241,24 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 		startYear <- simInfo[["time"]][["currentYear"]]
 		curYear <- startYear
 
-		# Run until the current FLBEIA year
-		while((curYear - startYear + 1) < year) {
-			status <- yearSim()
-			curYear <- status[["currentYear"]]
-		}
+		print(paste("Start year is", curYear, (curYear - startYear + 1)))
 
+		# Run until the current FLBEIA year
+		gadgetSimOut <- runUntil(projYear-1)
+
+		# Expand FLStock and FLIndex
+		gadgetSimOut[[curGadgetStockName]]$stk <- expand(gadgetSimOut[[curGadgetStockName]]$stk, year=firstYear:finalYear)
+		gadgetSimOut[[curGadgetStockName]]$idx <- expand(gadgetSimOut[[curGadgetStockName]]$idx, year=firstYear:finalYear)
+
+		# Collect hindcast stats
+		SR@ssb <- ssb(gadgetSimOut[[curGadgetStockName]]$stk)
+		SR@rec <- rec(gadgetSimOut[[curGadgetStockName]]$stk)
+		biol@wt<- stock.wt(gadgetSimOut[[curGadgetStockName]]$stk)
+		biol@n <- stock.n(gadgetSimOut[[curGadgetStockName]]$stk)
+
+		# Update the gadget year
+		simInfo <- getEcosystemInfo()
+		curYear <- simInfo[["time"]][["currentYear"]]
 		print(paste("Year now is", curYear, (curYear - startYear + 1)))
 
 		# Run for this year and collect the stats
@@ -254,6 +272,9 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 
 		# Put the statistics information for this year
 		GDGT[["currentStats"]][[as.character(year)]] <- stats
+
+		# Put the FLstock and FLindex information
+		GDGT[["gadgetSimOut"]] <- gadgetSimOut
 	}else{
 		# Check whether this is another species or a start of the year
 		simInfo <- getEcosystemInfo()
@@ -271,12 +292,27 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 		}else{
 			# Get stats for the current year
 			stats <- GDGT[["currentStats"]][[as.character(year)]]
+			curYear <- curYear - 1
 		}
 	}
 
 	print("Current gadget information:\n")
 	simInfo <- getEcosystemInfo()
 	print(simInfo)
+
+	iter <- 1
+
+	# Update FLStock(and FLIdx) (using the latest simout)
+	gadgetSimOut <- GDGT[["gadgetSimOut"]]
+	gadgetSimOut[[curGadgetStockName]] <- updateFLStock(curGadgetStockName, stats, as.character(curYear), gadgetSimOut[[curGadgetStockName]]$stk, gadgetSimOut[[curGadgetStockName]]$idx, stockParams[["stockStep"]])
+
+	# Put the updated FLstock and FLindex information
+	GDGT[["gadgetSimOut"]] <- gadgetSimOut
+
+	SR@ssb[, as.character(curYear)]  <- ssb(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear)]
+	SR@rec[, as.character(curYear)]  <- rec(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear)]
+	biol@wt[, as.character(curYear)] <- stock.wt(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear)]
+	biol@n[, as.character(curYear)] <- stock.n(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear)]
 
 	# If reaches the end of gadget simulation
 	if(simInfo[["time"]][["finished"]] == 1){
@@ -286,50 +322,6 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 		# Get the output
 		out <- finalize()
 	}
-
-	# Get current stock number
-	stkNo <- match(stknm, names(biols), nomatch = 0)
-
-	# Fill Biol with stock information and SRs with SSB and Recruitments
-	# Here we assume stock number in FLBEIA is similar to gadget output
-
-	# Sum SSB
-	if(ncol(stats[["stocks"]][[stkNo]][["ssb"]]) == 0)
-		ssb <- NA
-	else
-		ssb <- sum(stats[["stocks"]][[stkNo]][["ssb"]][,"SSB"])
-
-	SR@ssb["all", year] <- ssb
-
-        # Recruitment (TODO: Defining start age)
-	if(ncol(stats[["stocks"]][[stkNo]][["rec"]][["spawn"]]) == 0)
-		recA <- 0
-	else
-		recA <- sum(stats[["stocks"]][[stkNo]][["rec"]][["spawn"]][,"Rec"])
-
-	if(ncol(stats[["stocks"]][[stkNo]][["rec"]][["renew"]]) == 0)
-		recB <- 0
-	else
-		recB <- sum(stats[["stocks"]][[stkNo]][["rec"]][["renew"]][,"renewalNumber"])
-
-	if(recA + recB == 0)
-		SR@rec[1, year] <- NA
-	else
-		SR@rec[1, year] <- recA + recB
-
-	# For stocks number and weight
-
-	dfTmp <- stats[["stocks"]][[stkNo]][["stk"]]
-
-	wt <- aggregate(number*meanWeights ~ year + area + age, data=dfTmp, FUN=sum)
-	colnames(wt) <-  c("year", "area", "age", "data")
-	print(wt)
-	n <- aggregate(number ~ year + area + age, data=dfTmp, FUN=sum)
-	colnames(n) <- c("year", "area", "age", "data")
-	print(n)
-
-	biol@wt[,year,,season] <- wt[,"data"]/n[,"data"]
-	biol@n[,year,,season] <- n[,"data"]
 
 	print(biol@wt)
 	print(biol@n)

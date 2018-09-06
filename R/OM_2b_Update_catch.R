@@ -67,8 +67,6 @@ gadgetCatch.CAA  <- function(fleets, biols, GDGTs, SRs, BDs, biols.ctrl, fleets.
 
     if(!(st %in% sts)) return(list(fleets = fleets, biols = biols, SRs = SRs, GDGTs = GDGTs))
 
-    print(paste0("Name: ",sts))
-
     runBio <- FALSE
 
     # If it's a start of the year, run BioOM
@@ -103,49 +101,39 @@ gadgetCatch.CAA  <- function(fleets, biols, GDGTs, SRs, BDs, biols.ctrl, fleets.
     # Collect stats for this year
     stats <- GDGTs[["currentStats"]][[as.character(year)]]
 
-    currentFleetNo <- match(f, names(fleets), nomatch = 0)
-    currentStkNo <- match(st, names(biols), nomatch = 0)
-
     # Set to use future fleets. TODO: Make it dynamic
-    currentFleetNo <- currentFleetNo + 2
+    curGadgetStockName <- convertStockName[[st]]
+    curGadgetFleetName <- convertFleetName[[f]]
 
-    print(paste("Fleet", currentFleetNo, "Stock", currentStkNo))
+    print(paste("Fleet", curGadgetFleetName, "Stock", curGadgetStockName))
 
     for(mt in 1:length(mtnms)){
 
         if(!(st %in% names(fl@metiers[[mt]]@catches))) next
 
-        cobj <- fl@metiers[[mt]]@catches[[st]]
+        tempobj <- fl@metiers[[mt]]@catches[[st]]
 
-        catchStat <- stats[["fleets"]][[currentFleetNo]][["catch"]][[currentStkNo]]
+        catchStat <- stats[["fleets"]][[curGadgetFleetName]][["catch"]][[curGadgetStockName]]
 
-	n <- aggregate(numberConsumed ~ year + area + age, data=catchStat, FUN=sum)
-	totalwt <- aggregate(biomassConsumed ~ year + area + age, data=catchStat, FUN=sum)
+        n <- aggregate(numberConsumed ~ year + area + age, data=catchStat, FUN=sum)
+        totalwt <- aggregate(biomassConsumed ~ year + area + age, data=catchStat, FUN=sum)
 
-        print(n)
-        print(totalwt)
+        tempobj@landings[,yr,,ss] <- sum(totalwt[,"biomassConsumed"])
+        tempobj@landings.n[,yr,,ss] <- n[,"numberConsumed"]
+        tempobj@landings.wt[,yr,,ss] <- totalwt[,"biomassConsumed"]/n[,"numberConsumed"]
 
-        cobj@landings[,yr,,ss] <- sum(totalwt[,"biomassConsumed"])
-        cobj@landings.n[,yr,,ss] <- n[,"numberConsumed"]
-
-        cobj@landings.wt[,yr,,ss] <- totalwt[,"biomassConsumed"]/n[,"numberConsumed"]
+        tempobj@discards[,yr,,ss] <- 0
+        tempobj@discards.n[,yr,,ss] <- 0
+        tempobj@discards.wt[,yr,,ss] <- tempobj@landings.wt[,yr,,ss]
 
         # If the division is by zero
-        cobj@landings.wt[,yr,,ss][is.na(cobj@landings.wt[,yr,,ss])] <- 0
+        tempobj@landings.wt[,yr,,ss][is.na(tempobj@landings.wt[,yr,,ss])] <- 0
 
         # When land.wt = 0 <-  land.n = NA => change to 0. (idem for disc.wt)
-        cobj@landings.n[,yr,,ss][is.na(cobj@landings.n[,yr,,ss])] <- 0
-        cobj@discards.n[,yr,,ss][is.na(cobj@discards.n[,yr,,ss])] <- 0
+        tempobj@landings.n[,yr,,ss][is.na(tempobj@landings.n[,yr,,ss])] <- 0
+        tempobj@discards.n[,yr,,ss][is.na(tempobj@discards.n[,yr,,ss])] <- 0
 
-        print("Catch")
-
-	print(cobj@landings)
-        print(cobj@landings.n)
-	print(cobj@landings.wt)
-
-	print("Catch END")
-
-        fl@metiers[[mt]]@catches[[st]] <- cobj
+        fl@metiers[[mt]]@catches[[st]] <- tempobj
 
     }
 
