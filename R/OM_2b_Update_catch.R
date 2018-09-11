@@ -65,27 +65,73 @@ gadgetCatch.CAA  <- function(fleets, biols, GDGTs, SRs, BDs, biols.ctrl, fleets.
     sts   <- catchNames(fl)
     mtnms <- names(fl@metiers)
 
+    #print(advice)
+    #print(advice.ctrl)
+
     if(!(st %in% sts)) return(list(fleets = fleets, biols = biols, SRs = SRs, GDGTs = GDGTs))
 
     runBio <- FALSE
 
     # If it's a start of the year, run BioOM
     if(isGadgetInitialized() == FALSE){
-	runBio <- TRUE
-        # We will always run gadget at the first run
-        GDGTs$runNow <- TRUE
-    }else{
-        # Check whether this is a start of a year
-	simInfo <- getEcosystemInfo()
-	curYear <- simInfo[["time"]][["currentYear"]]
-	startYear <- GDGTs$startYear
+	print("First run!")
+	setwd(GDGTs$gadget.inputDir)
+	# Load parameters
+	gadget(c("-s", "-main", GDGTs$gadget.mainFile, "-i", GDGTs$gadget.paramFile))
 
-	if((curYear - startYear + 1) == year){
-           runBio <- TRUE
-	}
+	# Initialize simulation
+	initSim()
+
+	# Record the start year
+	simInfo <- getEcosystemInfo()
+	GDGTs$startYear <- simInfo[["time"]][["currentYear"]]
+
+	# We will always run gadget at the first run
+	runBio <- TRUE
+
+	GDGTs$firstRun <- TRUE
+	GDGTs$runNow <- TRUE
     }
 
+    # Check whether this is a start of a year
+    simInfo <- getEcosystemInfo()
+    curYear <- simInfo[["time"]][["currentYear"]]
+    startYear <- GDGTs$startYear
+
+    if((curYear - startYear + 1) == year){
+        runBio <- TRUE
+    }
+
+    # Set to use future fleets. TODO: Make it dynamic
+    curGadgetStockName <- convertStockName[[st]]
+    curGadgetFleetName <- convertFleetName[[f]]
+
+    print(paste("Fleet", curGadgetFleetName, "Stock", curGadgetStockName))
+
     if(runBio == TRUE){
+	# Apply TAC
+	# Get forecast fleets
+	forecastFleets <- eval(parse(text=paste0(curGadgetStockName, ".forecasts")))
+
+	# Get TAC from advice
+	print(st)
+	TACs <- as.numeric(advice$TAC[st, as.character(startYear + year - 1)])
+	if(is.na(TACs)) TACs <- 0
+	print(TACs)
+
+	# Control the catch amount
+	# Assuming equally distributed TAC between fleets
+	nFleet <- length(forecastFleets)
+	TAC <- TACs/nFleet
+
+	# Set TAC
+	tacPortion <- eval(parse(text=paste0(curGadgetStockName, ".forecasts.tac.proportion")))
+	print(tacPortion)
+	for (stepTAC in c(1:length(tacPortion))){
+		print(paste(curGadgetFleetName, startYear + year - 1, stepTAC, 1, tacPortion[stepTAC] * TAC))
+		lapply(curGadgetFleetName, updateAmount, startYear + year - 1, stepTAC, 1, tacPortion[[stepTAC]] * TAC)
+	}
+
 	# Run Gadget for this specific year
 	GDGTs$runNow <- TRUE
         cat('------------ BIOLOGICAL OM (UNDER GADGET)------------\n')
@@ -100,12 +146,6 @@ gadgetCatch.CAA  <- function(fleets, biols, GDGTs, SRs, BDs, biols.ctrl, fleets.
 
     # Collect stats for this year
     stats <- GDGTs[["currentStats"]][[as.character(year)]]
-
-    # Set to use future fleets. TODO: Make it dynamic
-    curGadgetStockName <- convertStockName[[st]]
-    curGadgetFleetName <- convertFleetName[[f]]
-
-    print(paste("Fleet", curGadgetFleetName, "Stock", curGadgetStockName))
 
     for(mt in 1:length(mtnms)){
 

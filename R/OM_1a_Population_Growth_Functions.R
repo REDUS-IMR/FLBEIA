@@ -226,19 +226,9 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 	stockParams <- eval(parse(text=paste0(curGadgetStockName, ".params")))
 
 	# Check if this is gadget first run?
-	if(isGadgetInitialized() == FALSE){
-		print("First run!")
+	if(GDGT$firstRun){
 
-		setwd(GDGT$gadget.inputDir)
-
-		# Load parameters
-		gadget(c("-s", "-main", GDGT$gadget.mainFile, "-i", GDGT$gadget.paramFile))
-
-		# Initialize simulation
-		initSim()
-
-		simInfo <- getEcosystemInfo()
-		startYear <- simInfo[["time"]][["currentYear"]]
+		startYear <- GDGT$startYear
 		curYear <- startYear
 
 		print(paste("Start year is", curYear, (curYear - startYear + 1)))
@@ -256,16 +246,10 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 		biol@wt<- stock.wt(gadgetSimOut[[curGadgetStockName]]$stk)
 		biol@n <- stock.n(gadgetSimOut[[curGadgetStockName]]$stk)
 
-		# Update the gadget year
+		# Run for this year and collect the stats
 		simInfo <- getEcosystemInfo()
 		curYear <- simInfo[["time"]][["currentYear"]]
-		print(paste("Year now is", curYear, (curYear - startYear + 1)))
-
-		# Run for this year and collect the stats
 		stats <- runYear()
-
-		# Record the start year
-		GDGT$startYear <- startYear
 
 		# Create the list for the stats
 		GDGT[["currentStats"]] <- list()
@@ -275,6 +259,8 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 
 		# Put the FLstock and FLindex information
 		GDGT[["gadgetSimOut"]] <- gadgetSimOut
+
+		GDGT$firstRun <- FALSE
 	}else{
 		# Check whether this is another species or a start of the year
 		simInfo <- getEcosystemInfo()
@@ -296,10 +282,6 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 		}
 	}
 
-	print("Current gadget information:\n")
-	simInfo <- getEcosystemInfo()
-	print(simInfo)
-
 	iter <- 1
 
 	# Update FLStock(and FLIdx) (using the latest simout)
@@ -315,6 +297,10 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 	biol@n[, as.character(curYear)] <- stock.n(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear)]
 
 	# If reaches the end of gadget simulation
+	print("Current gadget information:\n")
+	simInfo <- getEcosystemInfo()
+	print(simInfo)
+
 	if(simInfo[["time"]][["finished"]] == 1){
 		# Sim cleanup
 		finalizeSim()
