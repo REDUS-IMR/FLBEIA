@@ -17,6 +17,10 @@ Depends:
     FLCore (>= 2.6.5),
     FLFleet,
     ggplot2
+Remotes:
+    mawp/spict/spict,
+    flr/FLash@FLash64,
+    flr/FLAssess
 Suggests: R.rsp, FLXSA, FLa4a, Matrix, spict, FLash, FLAssess, nloptr, triangle, mvtnorm
 Additional_repositories: http://flr-project.org/R
 License: GPL-2
