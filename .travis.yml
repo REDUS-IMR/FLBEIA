@@ -20,8 +20,13 @@ sudo: false
 
 cache: packages
 
-before_install:
-  - sudo apt-get install -y libgsl-dev
+addons:
+  apt:
+    packages:
+    - libgsl-dev
+  homebrew:
+    packages:
+    - gsl
 
 r_github_packages: mawp/spict/spict
 
