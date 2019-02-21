@@ -1,13 +1,13 @@
 #-------------------------------------------------------------------------------  
-# one dataset: 
-# code to generate data in one.RData
+# multi dataset: 
+# code to generate data in multi.RData
 # 
 # Created: Agurtzane Urtizberea -  2016-02-09
 # Changed: 2018-07-04 10:58:14 (ssanchez)
 #------------------------------------------------------------------------------- 
 
-# one.r - code to generate data in one.RData
-# FLBEIA/data-row/one/one.r
+# multi.r - code to generate data in multi.RData
+# FLBEIA/data-raw/multi/multi.r
 
 # Copyright: AZTI, 2018
 # Author: Agurtzane Urtizberea, Dorleta Garcia and Sonia Sanchez (AZTI) (<flbeia@azti.es>)
@@ -175,7 +175,7 @@ rm(list=ls())
   library(FLAssess)
   library(FLash)
   library(FLFleet)
-  library(FLXSA)
+#  library(FLXSA)
   library(FLBEIA) 
 
 #==============================================================================
@@ -576,11 +576,11 @@ rm(list=ls())
 #  Section 17:       covars
 #==============================================================================
 
-  cv_mean_value <- c( FuelCost = 46, CapitalCost = 4519.06, Salaries = 0, InvestShare = 0.2, NumbVessels = 228.33, 
+  cv_mean_value <- c( FuelCost = 46, CapitalValue = 4519.06, Salaries = 0, InvestShare = 0.2, NumbVessels = 228.33, 
                       MaxDays = 228, w1 = 0.03, w2 = 0.03, EmploymentPerVessel = 2)
   
   covars <- vector("list",9)
-  names(covars) <- c("FuelCost","CapitalCost","Salaries", "InvestShare","NumbVessels","MaxDays",
+  names(covars) <- c("FuelCost","CapitalValue","Salaries", "InvestShare","NumbVessels","MaxDays",
                      "w1","w2","EmploymentPerVessel")
   flq <- FLQuant(rnorm(length(fls)*length(first.yr:last.yr)*ns*ni, 1000,100), 
                  dimnames = list(fleets = fls, year = first.yr:last.yr, unit = stk1.unit, season = 1:ns, iter = 1:ni)) 
@@ -598,7 +598,7 @@ rm(list=ls())
 #==============================================================================
   
   covars.ctrl <- vector("list",9)
-  names(covars.ctrl) <- c("FuelCost","CapitalCost","Salaries", "InvestShare","NumbVessels","MaxDays",
+  names(covars.ctrl) <- c("FuelCost","CapitalValue","Salaries", "InvestShare","NumbVessels","MaxDays",
                           "w1","w2","EmploymentPerVessel")
   
   for(cv in names(covars)){ 
@@ -639,7 +639,7 @@ rm(list=ls())
   
   save( multiAdv, multiAdvC, multiAssC, multiBD, multiBio, multiBioC, multiCv, multiCvC, 
         multiFl, multiFlC, multiMainC, multiObsC, multiSR, 
-        file = '../../data/multi.RData')
+        file = '../../data/multi.RData', compress="xz")
     
   
 # #==============================================================================
@@ -662,7 +662,7 @@ rm(list=ls())
 #                advice.ctrl = multiAdvC) # A list with one element to define how the TAC advice is obtained ("IcesHCR").
 #   
 #   multiRes <- s2
-#   save(multiRes,file='../../data/multiRes.RData')
+#   save(multiRes,file='../../data/multiRes.RData',compress="xz")
 #   
 #   
 # #==============================================================================

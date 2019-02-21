@@ -41,6 +41,10 @@
 # 08/06/2016 - Created:  Dorleta Garcia.
 # 18/06/2016 - Modified: Dorleta Garcia.
 # 20/12/2016 - Modified: Dorleta Garcia. Incorporation of Data Limited Stocks into the HCR.
+# 03/09/2018 - Modified: Dorleta Garcia. Add new settings to the HCR mean and min.
+# 13/12/2018 - Modified: Dorleta Garcia. When using the min  option check that all the Fadv are above the 
+#                                        lower range, if not the F-s are moved trying to put them all within
+#                                        the ranges, always maintaining the proportionality
 #---------------------------------------------------------------------------------------------------
 #' @rdname annualTAC
 MultiStockHCR <- function(stocks, indices, advice, advice.ctrl, year, stknm,...){
@@ -59,8 +63,9 @@ MultiStockHCR <- function(stocks, indices, advice, advice.ctrl, year, stknm,...)
     
     stocksInHCR    <- advice.ctrl[['stocksInHCR']]
     stocksCat      <- advice.ctrl[['stocksCategory']]
+    approach       <- ifelse(is.null(advice.ctrl[['approach']]), 'max', advice.ctrl[['approach']])
     
-    if(stocksCat[stknm] == 1) stk <- FLAssess::stf(stk, nyears = 3, wts.nyears = 3, fbar.nyears = 3, f.rescale = f.rescale) #, disc.nyrs = disc.nyears)
+    if(stocksCat[stknm] == 1) stk <- stf(stk, nyears = 3, wts.nyears = 3, fbar.nyears = 3, f.rescale = f.rescale) #, disc.nyrs = disc.nyears)
 
    # if(dim(stk@m)[1] == 1)    harvest(stk) <- stk@catch.n/stk@stock.n 
     
@@ -82,19 +87,21 @@ MultiStockHCR <- function(stocks, indices, advice, advice.ctrl, year, stknm,...)
    # Argument!
     # Last SSB (Age structured) OR Biomass (Aggregated) estimate
     
-    Ftg <- Fupp  <- Fsq <- Cst <- matrix(NA, length(stocksInHCR), iter)
-   rownames(Ftg) <-rownames(Fupp) <- rownames(Fsq) <- rownames(Cst) <- stocksInHCR
+    Ftg <- Fupp  <- Flow <- Fsq <- Cst <- matrix(NA, length(stocksInHCR), iter)
+   rownames(Ftg) <- rownames(Fupp) <- rownames(Flow) <- rownames(Fsq) <- rownames(Cst) <- stocksInHCR
    
    
     for(st in stocksInHCR){
+      
+      stk0 <- stocks[[st]]
       
       ref.pts_st <- advice.ctrl[[st]][['ref.pts']]
       
       if(stocksCat[st] == 1){     
         if(ageStruct)
-            b.datyr <- ssb(stk)[,year-1,drop = TRUE] # [it]
+            b.datyr <- ssb(stk0)[,year-1,drop = TRUE] # [it]
         else
-            b.datyr <- (stk@stock.n*stk@stock.wt)[,year-1,drop = TRUE] # [it]
+            b.datyr <- (stk0@stock.n*stk0@stock.wt)[,year-1,drop = TRUE] # [it]
 
       
         b.pos <- apply(matrix(1:iter,1,iter),2, function(i) findInterval(b.datyr[i], ref.pts_st[c('Blim', 'Btrigger'),i]))  # [it]
@@ -107,6 +114,7 @@ MultiStockHCR <- function(stocks, indices, advice, advice.ctrl, year, stknm,...)
         Fsq[st,] <- yearMeans(fbar(stocks[[st]])[,(year-3):(year-1)])
     
         Fupp[st,] <- ref.pts_st['Fupp',]
+        Flow[st,] <- ref.pts_st['Flow',]
       }
       
       if(stocksCat[st] == 3){     
@@ -132,18 +140,34 @@ MultiStockHCR <- function(stocks, indices, advice, advice.ctrl, year, stknm,...)
       }
     }
    
-   
+#----------------------------------------------------------------------------
+# Apply the conditions of the HCR
+#----------------------------------------------------------------------------
    
     Fsq[Fsq == 0] <- 1e-6
     
-    lambda0 <- apply(Ftg/Fsq,2,max)
+    lambda0 <- apply(Ftg/Fsq,2,approach)
    
     Fadv0 <- Fadv <- sweep(Fsq,2,lambda0, "*") # [nst,it]
    
-    if(any(Fadv0 > Fupp)){
+    
+    # The checks inthe secont step depend on the approach
+    if((approach %in% c('max', 'mean')) & any(Fadv0 > Fupp)){
       lambda1 <- apply(Fupp/Fadv0,2,min) # The F multiplier.
       Fadv <- sweep(Fadv0,2,lambda1,"*")
     }
+    if((approach == 'min') & any(Fadv0 < Flow)){
+      lambda1 <- apply(Flow/Fadv0,2,max) #[it]
+      upps <- Fupp/Fadv0
+      comp1 <- colSums((1/sweep(upps,1,lambda1,"/")) >1) # [it]
+      # The correction will be always the minimum of the Fupp/Fadv0 ratios, because for NONE of the stock we can be above.
+      pos <- apply(upps,2,which.min) # [it]
+      # If comp1 == 0, for this iteration non of the stocks is above Fupp
+      # If comp1 == 1, there exist one stock above Fupp
+      # If comp1 > 1, there are several stocks above Fupp, so from the corresponding multipliers we need to select the lowest one.
+      lambda1 <- ifelse(comp1 == 0, lambda1,  sapply(1:length(comp1),function(x) upps[pos[x],x] ))
+      Fadv <- sweep(Fadv0,2,lambda1,"*")
+      }
      
     Fadv_st <- Fadv[stknm,]
    
@@ -152,7 +176,11 @@ MultiStockHCR <- function(stocks, indices, advice, advice.ctrl, year, stknm,...)
     Fadv_st[is.na(Fadv_st)] <- 1e-6
     
     print(Fadv_st)
-
+    
+    
+#--------------------------------------------------------------------------------------
+# For 'stknm' calculate the corresponding TAC advice as done in the rest of the HCRs 
+#--------------------------------------------------------------------------------------
     for(i in 1:iter){
       
       if(stocksCat[stknm] == 1){

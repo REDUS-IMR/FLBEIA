@@ -108,14 +108,32 @@
  #==============================================================================
  
  
- calculate.q.sel.flrObjs <- function(biols, fleets, BDs){
+ #' Calculates selectivity-related parameters
+ #' 
+ #' Given stock abundances and catches (i.e. landings and discards), this function estimates values for
+ #' \code{fleets[[fl]]@@metiers[[mt]]@@catches[[st]]@@catch.q}, 
+ #' \code{fleets[[fl]]@@metiers[[mt]]@@catches[[st]]@@landings.sel}, and 
+ #' \code{fleets[[fl]]@@metiers[[mt]]@@catches[[st]]@@discards.sel} 
+ #' for all years except the simulation years. For the simulation years, 
+ #' the parameter values are set as the mean of the parameters along \code{mean.yrs}. 
+ #'
+ #' @param biols An FLBiols object.
+ #' @param fleets An FLFleetsExt object. An extended version of the FLFleet object defined in FLCore. 
+ #' @param BDs A list of FLSRsim objects. One per biomass dynamic stock in biols object.
+ #' @param mean.yrs A character vector with the name of the years used to calculate mean selectivity.
+ #' @param sim.yrs A character vector with the name of the years in the projection period.
+ #' 
+ #' @return A FLFleetsExt object. 
+ #' 
+ 
+ calculate.q.sel.flrObjs <- function(biols, fleets, BDs, mean.yrs, sim.yrs){
    
     for(st in names(biols)){
     
       na <- dim(biols[[st]]@n)[1]
     
-     if(na == 1){  # 'Biomass' in numbers because the catch is in numbers, in the middle of the season.
-        B <- biols[[st]]@n*exp(-biols[[st]]@m/2)  
+     if(na != 1){  # 'Biomass' in numbers because the catch is in numbers, in the middle of the season.
+        B <- biols[[st]]@n*exp(-biols[[st]]@m/2)#*biols[[st]]@wt  
      }else{ # 'Biomass' in weight because the growth is in weight => later we use the catch in weight.
         
         if(is.null(BDs[[st]])) gB <- 0
@@ -134,17 +152,26 @@
             alpha <- fleets[[fl]]@metiers[[mt]]@catches[[st]]@alpha
             beta  <- fleets[[fl]]@metiers[[mt]]@catches[[st]]@beta
             E     <- fleets[[fl]]@effort*fleets[[fl]]@metiers[[mt]]@effshare
-         
+            
             if(na == 1 ) C <- fleets[[fl]]@metiers[[mt]]@catches[[st]]@discards.n*fleets[[fl]]@metiers[[mt]]@catches[[st]]@discards.wt + 
                               fleets[[fl]]@metiers[[mt]]@catches[[st]]@landings.n*fleets[[fl]]@metiers[[mt]]@catches[[st]]@landings.wt
             
-            fleets[[fl]]@metiers[[mt]]@catches[[st]]@catch.q <- C/(E%^%alpha)*(B%^%beta)
+            fleets[[fl]]@metiers[[mt]]@catches[[st]]@catch.q <- C/((E%^%alpha)*(B%^%beta))
             
-            # fleets[[fl]]@metiers[[mt]]@catches[[st]]@landings.sel <- fleets[[fl]]@metiers[[mt]]@catches[[st]]@landings.n/(fleets[[fl]]@metiers[[mt]]@catches[[st]]@landings.n +
-            #                                                                                                                 fleets[[fl]]@metiers[[mt]]@catches[[st]]@discards.n)
-            # fleets[[fl]]@metiers[[mt]]@catches[[st]]@discards.sel <- 1 - fleets[[fl]]@metiers[[mt]]@catches[[st]]@landings.sel
+            fleets[[fl]]@metiers[[mt]]@catches[[st]]@landings.sel <- fleets[[fl]]@metiers[[mt]]@catches[[st]]@landings.n/(fleets[[fl]]@metiers[[mt]]@catches[[st]]@landings.n +
+                                                                                                                             fleets[[fl]]@metiers[[mt]]@catches[[st]]@discards.n)
+            fleets[[fl]]@metiers[[mt]]@catches[[st]]@discards.sel <- 1 - fleets[[fl]]@metiers[[mt]]@catches[[st]]@landings.sel
             
-        }
+            # Fill in the values in the projection.
+            fleets[[fl]]@metiers[[mt]]@catches[[st]]@catch.q[,ac(sim.yrs)] <- yearMeans(fleets[[fl]]@metiers[[mt]]@catches[[st]]@catch.q[,ac(mean.yrs)])
+            fleets[[fl]]@metiers[[mt]]@catches[[st]]@landings.sel[,ac(sim.yrs)] <- apply(fleets[[fl]]@metiers[[mt]]@catches[[st]]@landings.sel[,ac(mean.yrs)],1,mean,na.rm = TRUE)
+            fleets[[fl]]@metiers[[mt]]@catches[[st]]@discards.sel[,ac(sim.yrs)] <- 1-yearMeans(fleets[[fl]]@metiers[[mt]]@catches[[st]]@landings.sel[,ac(mean.yrs)])
+
+            # If there are NA-s replace them by 0 in the case of catch.q & discards.sel and by 1 in the case of landings
+            fleets[[fl]]@metiers[[mt]]@catches[[st]]@catch.q[is.na(fleets[[fl]]@metiers[[mt]]@catches[[st]]@catch.q)] <- 0
+            fleets[[fl]]@metiers[[mt]]@catches[[st]]@landings.sel[is.na(fleets[[fl]]@metiers[[mt]]@catches[[st]]@landings.sel)] <- 1
+            fleets[[fl]]@metiers[[mt]]@catches[[st]]@discards.sel[is.na(fleets[[fl]]@metiers[[mt]]@catches[[st]]@discards.sel)] <- 0
+            }
      }
    }
    return(fleets)

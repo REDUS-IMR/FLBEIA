@@ -4,9 +4,10 @@
 \alias{create.fleets.ctrl}
 \title{fleets.ctrl object creator}
 \usage{
-create.fleets.ctrl(fls, n.fls.stks, fls.stksnames, catch.threshold = NULL,
-  seasonal.share = NULL, effort.models = NULL, capital.models = NULL,
-  catch.models = NULL, price.models = NULL, flq, ...)
+create.fleets.ctrl(fls, n.fls.stks, fls.stksnames,
+  catch.threshold = NULL, seasonal.share = NULL,
+  effort.models = NULL, capital.models = NULL, catch.models = NULL,
+  price.models = NULL, flq, ...)
 }
 \arguments{
 \item{fls}{character vector with fleet names}
@@ -40,8 +41,8 @@ The default is NULL in which case 'CobbDouglasAge' is used for **all** the fleet
 the first element correspond with the price model of the first fleet in fls and the first stock in fls.stksnames, the second with the second and so on.
 The default is NULL in which case 'fixedPrice' is used for **all** the fleets.}
 
-\item{flq}{An flquant to give structure to the FLQuants to be used within the function, 
-the dimensioan and dimnames in 'year', 'season' and 'iter' will be used to create the necessary FLQuants.}
+\item{flq}{An FLQuant to give structure to the FLQuants to be used within the function, 
+the dimension and dimnames in 'year', 'season' and 'iter' will be used to create the necessary FLQuants.}
 
 \item{...}{Any extra arguments necessary in the model specific creators. '...' are extracted using 'list(...)', this generates a named list with the extra arguments.
 To assure the correct functioning the extra arguments must have a name, for example, elas = FLQuant(1,dimnames = DimsNms).}

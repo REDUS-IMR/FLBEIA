@@ -3,6 +3,7 @@
 \docType{class}
 \name{FLBDsim}
 \alias{FLBDsim}
+\alias{FLBDsim-class}
 \title{FLBDsim class and methods}
 \arguments{
 \item{...}{Empty or FLQuants for 'biomass', 'catch' and 'uncertainty' slots and optionally the values for the rest of the slots.}
@@ -27,7 +28,7 @@ The FLBDsim has the following slots:
 
 \item{\code{biomass}}{An FLQuant to store the biomass of the stock.}
 
-\item{\code{gB}}{An FLQuant to store the surplus 4production of the stock.}
+\item{\code{gB}}{An FLQuant to store the surplus production of the stock.}
 
 \item{\code{catch}}{An FLQuant to store the catch of the stock.}
 

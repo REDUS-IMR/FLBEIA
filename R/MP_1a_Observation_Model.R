@@ -61,12 +61,16 @@ perfectObs <- function(biol, fleets, covars, obs.ctrl, year = 1, season = NULL, 
     # FIRST SEASON, FIRST UNIT:
     # biol@wt = "stock.wt" = "catch.wt" = "discards.wt" = "landings.wt" = "mat" = "harvest.spwn" = "m.spwn
     res <- propagate(as(biol, 'FLStock')[,1:(year-1),1,1], it, fill.iter = TRUE)
+    res@range <- res@range[1:7]
+    
     dimnames(res) <- list(unit="unique")
     
     #res@range[c(1:3,6:7)] <- biol@range[c(1:3,6:7)]
     #names(res@range[6:7]) <- c('minfbar', 'maxfbar')
         
-    res@discards.wt <- res@landings.wt <- res@catch.wt <- res@stock.wt
+    res@discards.wt[] <- wtadStock(fleets,st)[,1:(year-1),1,1]
+    res@landings.wt[] <- wtalStock(fleets,st)[,1:(year-1),1,1]
+    res@catch.wt[] <-  (res@landings.wt*landStock(fleets,st)[,1:(year-1),1,1] + res@discards.wt*discStock(fleets,st)[,1:(year-1),1,1])/catchStock(fleets,st)[,1:(year-1),1,1]
         
     # "stock.n":  FIRST SEASON and SUM ALONG UNITS except recruitment
     # rec = n[1,,1,1] + n[1,,2,2] + n[1,,3,3] + n[1,,4,4]
@@ -109,7 +113,7 @@ perfectObs <- function(biol, fleets, covars, obs.ctrl, year = 1, season = NULL, 
     catch.n(res)    <- res@discards.n + res@landings.n
     landings(res)   <- quantSums(res@landings.n*res@landings.wt)
     discards(res)   <- quantSums(res@discards.n*res@discards.wt)
-    catch(res)      <- quantSums(res@catch.n*res@catch.wt)
+    catch(res)      <- res@landings + res@discards
         
     # harvest: * if age structured calculate it from 'n'.
     #          * if biomass dyn => assume C = q*E*B => C = F*B and F = C/B.
@@ -144,7 +148,7 @@ perfectObs <- function(biol, fleets, covars, obs.ctrl, year = 1, season = NULL, 
                     
                     else{
                         zz <- try(ifelse(n.[a,y,i] == 0 | c.[a,y,i] == 0, 0,
-                                                uniroot(fobj, lower = 1e-300, upper = 1e6, n = n.[a,y,i], m=m.[a,y,i], c = c.[a,y,i])$root), silent = TRUE)  
+                                                uniroot(fobj, lower = 1e-300, upper = 1e6, n = n.[a,y,i], m=m.[a,y,i], c = c.[a,y,i], tol = 1e-12)$root), silent = TRUE)  
                         res@harvest[a,y,,,,i] <- ifelse(is.numeric(zz), zz, res@harvest[ai-1,y,,,,i] )
                     }
                 }
@@ -221,6 +225,7 @@ age2ageDat <- function(biol, fleets, advice, obs.ctrl, year, stknm,...){
     }
          
     stck              <- propagate(as(biol, "FLStock")[,1:ny,1,1],it, fill.iter = TRUE)  
+    stck@range <- stck@range[1:7]
     dimnames(stck) <- list(unit="unique")
 
     landings.wt(stck)[] <- Obs.land.wgt(fleets, ages.error, land.wgt.error, yr, stknm)
@@ -367,6 +372,7 @@ bio2bioDat <- function(biol, fleets, advice, obs.ctrl, year, stknm,...){
     }
    
     stck              <- propagate(as(biol, "FLStock")[,1:ny], it, fill.iter = TRUE)
+    stck@range <- stck@range[1:7]
 
     landings(stck)     <- Obs.land.bio(fleets, land.bio.error, yr, stknm)
     landings(stck)     <- FLQuant(ifelse(stck@landings > TAC.ovrsht[1,]*advice$TAC[stknm,1:ny], TAC.ovrsht[1,]*advice$TAC[stknm,1:ny], stck@landings),dim=c(1,ny,1,1,1,it),dimnames=list(age='all', year=dimnames(stck@m)[[2]], unit='unique', season='all', area='unique', iter=1:it))
@@ -440,6 +446,7 @@ age2bioDat <- function(biol, fleets, advice, obs.ctrl, year, stknm,...){
              
     biolbio <- setPlusGroupFLBiol(biol,biol@range[1])
     stck                <- propagate(as(biolbio, "FLStock")[,1:ny], it, fill.iter = TRUE) 
+    stck@range <- stck@range[1:7]
     dimnames(stck)      <- list(age="all")
 
     landings(stck)      <- FLQuant(Obs.land.bio(fleets, land.bio.error, yr, stknm),dim= c(1,ny,1,1,1,it), dimnames = dimnames(stck@m))
@@ -504,6 +511,9 @@ age2bioPop <- function(biol, fleets, advice, obs.ctrl, year, stknm,...){
 #-------------------------------------------------------------------------------    
 # ageInd(biol, index, obs.ctrl, year, stknm)
 # Age structured index
+# 2018/10/22 Due to incompatibility with the use of .@index.var in stock assessment models (sca) 
+#   index.var is no longer used to store the uncertainty of the index. The uncertainty can be incorporate in 
+#   the slot index.q, ie., @index.q = q*err
 #-------------------------------------------------------------------------------   
 # The index is already updated up to year [y-2], we have to update year [y-1].
 ageInd <- function(biol, index, obs.ctrl, year, stknm,...){
@@ -547,8 +557,7 @@ ageInd <- function(biol, index, obs.ctrl, year, stknm,...){
     for(i in 1:it){
         N <- unitSums(biol@n[ages.sel,yrnm.1,,sInd,,i])
         index@index[,yrnm.1,,,,i] <- (N%*%ages.error[ages.sel,ages.sel,yrnm.1,i])*
-                                       index@index.q[,yrnm.1,,,,i, drop=T]*
-                                       index@index.var[,yrnm.1,,,,i, drop=T]
+                                       index@index.q[,yrnm.1,,,,i, drop=T]# *index@index.var[,yrnm.1,,,,i, drop=T]
     }
     
     return(index)     
@@ -559,6 +568,9 @@ ageInd <- function(biol, index, obs.ctrl, year, stknm,...){
 #-------------------------------------------------------------------------------    
 # bioInd(biol, index, obs.ctrl, year, stknm)
 # index aggregated in biomass.
+# 2018/10/22 Due to incompatibility with the use of .@index.var in stock assessment models (sca) 
+#   index.var is no longer used to store the uncertainty of the index. The uncertainty can be incorporate in 
+#   the slot index.q, ie., @index.q = q*err
 #-------------------------------------------------------------------------------   
 bioInd <- function(biol, index, obs.ctrl, year, stknm,...){
     
@@ -581,7 +593,7 @@ bioInd <- function(biol, index, obs.ctrl, year, stknm,...){
     }
 
     B <- apply(biol@n[,yrnm.1,,sInd,,]*biol@wt[,yrnm.1,,sInd,,],c(2,6),sum)
-    index@index[,yrnm.1] <- B*index@index.q[,yrnm.1]*index@index.var[,yrnm.1]
+    index@index[,yrnm.1] <- B*index@index.q[,yrnm.1]#*index@index.var[,yrnm.1]
     
     return(index)     
 }
@@ -590,6 +602,9 @@ bioInd <- function(biol, index, obs.ctrl, year, stknm,...){
 #-------------------------------------------------------------------------------    
 # bio1plusInd(biol, index, obs.ctrl, year, stknm)
 # index aggregated in biomass (ages 1+).
+# 2018/10/22 Due to incompatibility with the use of .@index.var in stock assessment models (sca) 
+#   index.var is no longer used to store the uncertainty of the index. The uncertainty can be incorporate in 
+#   the slot index.q, ie., @index.q = q*err
 #-------------------------------------------------------------------------------   
 bio1plusInd <- function(biol, index, obs.ctrl, year, stknm,...){
   
@@ -613,7 +628,7 @@ bio1plusInd <- function(biol, index, obs.ctrl, year, stknm,...){
   }
   
   B1plus <- apply(biol@n[a1plus,yrnm.1,,sInd,,]*biol@wt[a1plus,yrnm.1,,sInd,,],c(2,6),sum)
-  index@index[,yrnm.1] <- B1plus*index@index.q[,yrnm.1]*index@index.var[,yrnm.1]
+  index@index[,yrnm.1] <- B1plus*index@index.q[,yrnm.1]#*index@index.var[,yrnm.1]
   
   return(index)     
 }
@@ -639,9 +654,9 @@ ssbInd <- function(biol, fleets, index, obs.ctrl, year, season,...){
   n.s2 <- biol@n[,yrnm.1,,sInd,]*exp(-biol@m[,yrnm.1,,sInd,])-catchStock(fleets,name(biol))[,yrnm.1,,sInd,]*exp(-biol@m[,yrnm.1,,sInd,]/2)
   fval <- log(biol@n[,yrnm.1,,sInd,]/n.s2) - biol@m[,yrnm.1,,sInd,]
   ssb.stk <- quantSums( biol@n[,yrnm.1,,sInd,]*exp(-(biol@m[,yrnm.1,,sInd,]+fval)*biol@spwn[,yrnm.1,,sInd,])*
-                          biol@wt[,yrnm.1,,sInd,]*biol@fec[,yrnm.1,,sInd,])
+                          biol@wt[,yrnm.1,,sInd,]*fec(biol)[,yrnm.1,,sInd,])
   
-  index@index[,yrnm.1] <- ssb.stk*index@index.q[,yrnm.1]*index@index.var[,yrnm.1]
+  index@index[,yrnm.1] <- ssb.stk*index@index.q[,yrnm.1]#*index@index.var[,yrnm.1]
   
   return(index)     
 }
@@ -651,6 +666,9 @@ ssbInd <- function(biol, fleets, index, obs.ctrl, year, season,...){
 # B1,2+ index (in mass)
 # cbbmInd(biol, index, obs.ctrl, year, season, stknm)
 # index aggregated in biomass.
+# 2018/10/22 Due to incompatibility with the use of .@index.var in stock assessment models (sca) 
+#   index.var is no longer used to store the uncertainty of the index. The uncertainty can be incorporate in 
+#   the slot index.q, ie., @index.q = q*err
 #-------------------------------------------------------------------------------   
 cbbmInd <- function(biol, index, obs.ctrl, year, season,...){
   
@@ -676,7 +694,7 @@ cbbmInd <- function(biol, index, obs.ctrl, year, season,...){
     B <- index@index[,yrnm.1,,,]*NA
     B[1,] <- biol.n[age1.pos-1,]*obs.ctrl$wage['age1',]
     B[2,] <- quantSums(biol.n[(age1.pos):na,])*obs.ctrl$wage['age2plus',]
-    index@index[,yrnm.1,] <- B*index@index.q[,yrnm.1,]*index@index.var[,yrnm.1,]
+    index@index[,yrnm.1,] <- B*index@index.q[,yrnm.1,]#*index@index.var[,yrnm.1,]
   }
   
   return(index)     

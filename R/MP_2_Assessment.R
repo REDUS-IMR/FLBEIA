@@ -20,7 +20,7 @@ assessment.mp <- function(stocks, fleets.obs, indices, covars=covars, assess.ctr
      
     if(assess.ctrl[[st]][['assess.model']] != "NoAssessment") {
       
-        if (assess.ctrl[[st]]$ass.curryr & season==dim(stocks[[1]]@stock.n)[4]) datayr <- datayr+1
+        if (assess.ctrl[[st]]$ass.curryr & season==dim(stocks[[1]]@stock.n)[4]) datayr <- ac(as.numeric(datayr)+1)
         
         # trim the indices, fron index specific initial year to the assessment year.
         indST <- indices[[st]]
@@ -39,7 +39,7 @@ assessment.mp <- function(stocks, fleets.obs, indices, covars=covars, assess.ctr
             
             for(i in 1:it){ 
                 res <- eval(call(assess.ctrl[[st]][['assess.model']], stock = iter(stocks[[st]],i), 
-                            indices = iter(indST,i), control = assess.ctrl[[st]]$control))
+                            indices = iter(indST,i), control = assess.ctrl[[st]]$control, covars=covars))
                 iter(stock.n(stocks[[st]]),i) <- res$stock@stock.n
                 iter(harvest(stocks[[st]]),i) <- res$stock@harvest
                 covars <- res$covars

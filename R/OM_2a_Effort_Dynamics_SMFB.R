@@ -140,7 +140,24 @@ SMFB <- function(fleets, biols, BDs, covars, advice, biols.ctrl, fleets.ctrl, ad
     names(QS) <- stnms
 
     fl    <- fleets[[flnm]]
+    
     sts   <- catchNames(fl)
+    
+    # The effort is restricted only by the stocks in 'stocks.restr'    
+    # Remove the NA-s if any
+    if(any(fleets.ctrl[[flnm]][['stocks.restr']])){
+      cat(paste("warning: there is at least one NA in  fleets.ctrl[['",flnm,"']][['stocks.restr']], and it has been removed, only the values different to NA will be maintained.\n", sep=""))
+      
+      fleets.ctrl[[flnm]][['stocks.restr']] <- fleets.ctrl[[flnm]][['stocks.restr']][!is.na(fleets.ctrl[[flnm]][['stocks.restr']])]
+    }
+    # If the restrictors are missing => all the stocks restrict.
+    if(is.null(fleets.ctrl[[flnm]][['stocks.restr']]) |  length(fleets.ctrl[[flnm]][['stocks.restr']]) == 0) {
+      fleets.ctrl[[flnm]][['stocks.restr']] <- catchNames(fleets[[flnm]])
+    }  
+      
+    sts <- fleets.ctrl[[flnm]][['stocks.restr']]
+    
+    
     mtnms <- names(fl@metiers)
     
     # flinfo: matrix with information on which metier catch which stock.
@@ -332,7 +349,7 @@ SMFB <- function(fleets, biols, BDs, covars, advice, biols.ctrl, fleets.ctrl, ad
              # if(flnm == 'MON_OT' & yr == 41)
               #  browser()
                 # if discards due to size are higher than discards allowed by minimise, ret.m.i is not changed,
-                # otherwise it is increases so that the total discards equal to min_p*Cr.f  
+                # otherwise it is increased so that the total discards equal to min_p*Cr.f  
                 
                 Cr.f[st,i] <- ifelse(Cr.f[st,i] == 0, 1e-6, Cr.f[st,i])
                 min_p <- fleets.ctrl[[flnm]]$LandObl_minimis_p[st,yr] # matrix(st,ny)

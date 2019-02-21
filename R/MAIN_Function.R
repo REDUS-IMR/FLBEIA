@@ -2,12 +2,12 @@
 #
 #' Run the FLBEIA bio-economic simulation model
 #' 
-#' FLBEIA is a simulation model that describes a fishery system under a Management Strategy Estrategy framework.The objective of the model is to facilitate the Bio-Economic evaluation of Management strategies. The model is multistock, multifleet and seasonal. The simulation is divided in 2 main blocks, the Operating Model (OM) and the Management Procedure  (MP). In turn, the OM is divided in 3 components, the biological, the fleets and the covariables component. The MP is also divided in 3 components, the observation, the assessment and the advice.
+#' FLBEIA is a simulation model that describes a fishery system under a Management Strategy Evaluation framework.The objective of the model is to facilitate the Bio-Economic evaluation of Management strategies. The model is multistock, multifleet and seasonal. The simulation is divided in 2 main blocks, the Operating Model (OM) and the Management Procedure  (MP). In turn, the OM is divided in 3 components, the biological, the fleets and the covariables component. The MP is also divided in 3 components, the observation, the assessment and the advice.
 #'
 #' @param biols An FLBiols object.
 #' @param fleets An FLFleetsExt object. An extended version of the FLFleet object defined in FLCore. 
-#' @param SRs A list of FLSRSim objects. One per age structured stock in biols object.
-#' @param BDs A list of FLSRSim objects. One per biomass dynamic stock in biols object.
+#' @param SRs A list of FLSRsim objects. One per age structured stock in biols object.
+#' @param BDs A list of FLBDsim objects. One per biomass dynamic stock in biols object.
 #' @param covars A list of FLQuants used to store any kind of variables that are used within the simulation and are not stored in the standard objects. 
 #' @param indices A list of FLIndices. Each element must correspond with one of the stocks in biols object. 
 #' @param advice A list with two FLQuant elements, TAC and quota.share. TAC is an FLQuant  with quant dimension equal to the number of stocks in biols object, the names used in in the quant dimension must be equal to those used in biols. quota.share is a list with one element per stock in biols object indicating the quota share per stock and fleet. The quant dimension of the elements must be equal to the number of fleets and the names used must be equal to those in fleets objects.  
@@ -37,34 +37,45 @@
 #' # Example with 1 stock, 1 Fleets, 1 seasons and 1 iteration: one
 #' #----------------------------------------------------------------
 #' 
-#' # Load the data to run FLBEIA in a one stock one fleet example using the HCR used by ICES in the MSY framework. 
+#' # Load the data to run FLBEIA in a one stock one fleet example using the HCR used by ICES 
+#' # in the MSY framework. 
 #'  data(one) 
 #' 
 #' # The names and the class of the objects needed to run FLBEIA.
 #' # sapply(ls(), function(x) class(get(x)))
 #' 
-#' # In this scenario a single, age-structured, stock is exploited by a single fleet with a unique metier. 
-#' # The fleet catches yearly exactly the adviced TAC and there is no exit-entry of vessels in the fishery.  
-#' # The stock abundance and exploitation level is observed without error in the observation model.
-#' # There is no assessment model and the TAC advice is used through the HCR used by ICES in the MSY framework.  
+#' # In this scenario a single, age-structured, stock is exploited by a single fleet with a 
+#' # unique metier. 
+#' # The fleet catches yearly exactly the adviced TAC and there is no exit-entry of vessels 
+#' # in the fishery.  
+#' # The stock abundance and exploitation level is observed without error in the observation 
+#' # model.
+#' # There is no assessment model and the TAC advice is used through the HCR used by ICES 
+#' # in the MSY framework.  
 #'  
 #' 
 #'   
 #'     
-#' s0 <- FLBEIA(biols = oneBio,       # FLBiols object with one FLBiol element for stk1.
-#'                SRs = oneSR,        # A list with one FLSRSim object for stk1.
-#'                BDs = NULL,         # No Biomass Dynamic populations in this case.
-#'             fleets = oneFl,        # FLFleets object with on fleet.
-#'             covars = oneCv,         # covars not used
-#'            indices = NULL,         # indices not used 
-#'             advice = oneAdv,       # A list with two elements 'TAC' and 'quota.share'
-#'          main.ctrl = oneMainC,     # A list with one element to define the start and end of the simulation.
-#'         biols.ctrl = oneBioC,      # A list with one element to select the model to simulate the stock dynamics.
-#'        fleets.ctrl = oneFlC,       # A list with several elements to select fleet dynamic models and store additional parameters.
-#'        covars.ctrl = oneCvC,         # covars control not used 
-#'           obs.ctrl = oneObsC,      # A list with one element to define how the stock observed ("PerfectObs").
-#'        assess.ctrl = oneAssC,      # A list with one element to define how the stock assessment model used ("NoAssessment").
-#'        advice.ctrl = oneAdvC)       # A list with one element to define how the TAC advice is obtained ("IcesHCR").
+#' s0 <- FLBEIA(biols = oneBio,   # FLBiols object with one FLBiol element for stk1.
+#'                SRs = oneSR,    # A list with one FLSRsim object for stk1.
+#'                BDs = NULL,     # No Biomass Dynamic populations in this case.
+#'             fleets = oneFl,    # FLFleets object with on fleet.
+#'             covars = oneCv,    # covars not used
+#'            indices = NULL,     # indices not used 
+#'             advice = oneAdv,   # A list with two elements 'TAC' and 'quota.share'
+#'          main.ctrl = oneMainC, # A list with one element to define the start and end of 
+#'                                # the simulation.
+#'         biols.ctrl = oneBioC,  # A list with one element to select the model to simulate 
+#'                                # the stock dynamics.
+#'        fleets.ctrl = oneFlC,   # A list with several elements to select fleet dynamic models 
+#'                                # and store additional parameters.
+#'        covars.ctrl = oneCvC,   # covars control not used 
+#'           obs.ctrl = oneObsC,  # A list with one element to define how the stock observed 
+#'                                # ("PerfectObs").
+#'        assess.ctrl = oneAssC,  # A list with one element to define how the stock assessment 
+#'                                # model used ("NoAssessment").
+#'        advice.ctrl = oneAdvC)  # A list with one element to define how the TAC advice is 
+#'                                # obtained ("IcesHCR").
 #' 
 #' # Names of the object returned by FLBEIA
 #' names(s0)
@@ -97,20 +108,26 @@
 #'  
 #' data(oneIt)
 #'  
-#' s1 <- FLBEIA(biols = oneItBio,       # FLBiols object with one FLBiol element for stk1.
-#'                SRs = oneItSR,        # A list with one FLSRSim object for stk1.
-#'                BDs = NULL,         # No Biomass Dynamic populations in this case.
-#'             fleets = oneItFl,        # FLFleets object with on fleet.
-#'             covars = oneItCv,         # covars not used
-#'            indices = NULL,         # indices not used 
-#'             advice = oneItAdv,       # A list with two elements 'TAC' and 'quota.share'
-#'          main.ctrl = oneItMainC,     # A list with one element to define the start and end of the simulation.
-#'         biols.ctrl = oneItBioC,      # A list with one element to select the model to simulate the stock dynamics.
-#'        fleets.ctrl = oneItFlC,       # A list with several elements to select fleet dynamic models and store additional parameters.
-#'        covars.ctrl = oneItCvC,         # covars control not used 
-#'           obs.ctrl = oneItObsC,      # A list with one element to define how the stock observed ("PerfectObs").
-#'        assess.ctrl = oneItAssC,      # A list with one element to define how the stock assessment model used ("NoAssessment").
-#'        advice.ctrl = oneItAdvC)       # A list with one element to define how the TAC advice is obtained ("IcesHCR").
+#' s1 <- FLBEIA(biols = oneItBio,   # FLBiols object with one FLBiol element for stk1.
+#'                SRs = oneItSR,    # A list with one FLSRsim object for stk1.
+#'                BDs = NULL,       # No Biomass Dynamic populations in this case.
+#'             fleets = oneItFl,    # FLFleets object with on fleet.
+#'             covars = oneItCv,    # covars not used
+#'            indices = NULL,       # indices not used 
+#'             advice = oneItAdv,   # A list with two elements 'TAC' and 'quota.share'
+#'          main.ctrl = oneItMainC, # A list with one element to define the start and end of 
+#'                                  # the simulation.
+#'         biols.ctrl = oneItBioC,  # A list with one element to select the model to simulate 
+#'                                  # the stock dynamics.
+#'        fleets.ctrl = oneItFlC,   # A list with several elements to select fleet dynamic 
+#'                                  # models and store additional parameters.
+#'        covars.ctrl = oneItCvC,   # covars control not used 
+#'           obs.ctrl = oneItObsC,  # A list with one element to define how the stock observed 
+#'                                  # ("PerfectObs").
+#'        assess.ctrl = oneItAssC,  # A list with one element to define how the stock 
+#'                                  # assessment model used ("NoAssessment").
+#'        advice.ctrl = oneItAdvC)  # A list with one element to define how the TAC advice is 
+#'                                  # obtained ("IcesHCR").
 #' 
 #' # Names of the object returned by FLBEIA
 #' names(s1)
@@ -156,20 +173,26 @@
 #'  
 #'  # Run FLBEIA.
 #'  
-#' s2 <- FLBEIA(biols = multiBio,       # FLBiols object with 2 FLBiol element for stk1.
-#'                SRs = multiSR,        # A list with 1 FLSRSim object for stk1.
-#'                BDs = multiBD,        # A list with 1 FLBDSim object for stk2.
-#'             fleets = multiFl,        # FLFleets object with on fleet.
-#'             covars = multiCv,         # covars not used
-#'            indices = NULL,         # indices not used 
-#'             advice = multiAdv,       # A list with two elements 'TAC' and 'quota.share'
-#'          main.ctrl = multiMainC,     # A list with one element to define the start and end of the simulation.
-#'         biols.ctrl = multiBioC,      # A list with one element to select the model to simulate the stock dynamics.
-#'        fleets.ctrl = multiFlC,       # A list with several elements to select fleet dynamic models and store additional parameters.
-#'        covars.ctrl = multiCvC,         # covars control not used 
-#'           obs.ctrl = multiObsC,      # A list with one element to define how the stock observed ("PerfectObs").
-#'        assess.ctrl = multiAssC,      # A list with one element to define how the stock assessment model used ("NoAssessment").
-#'        advice.ctrl = multiAdvC)       # A list with one element to define how the TAC advice is obtained ("IcesHCR").
+#' s2 <- FLBEIA(biols = multiBio,   # FLBiols object with 2 FLBiol element for stk1.
+#'                SRs = multiSR,    # A list with 1 FLSRsim object for stk1.
+#'                BDs = multiBD,    # A list with 1 FLBDSim object for stk2.
+#'             fleets = multiFl,    # FLFleets object with on fleet.
+#'             covars = multiCv,    # covars not used
+#'            indices = NULL,       # indices not used 
+#'             advice = multiAdv,   # A list with two elements 'TAC' and 'quota.share'
+#'          main.ctrl = multiMainC, # A list with one element to define the start and end 
+#'                                  # of the simulation.
+#'         biols.ctrl = multiBioC,  # A list with one element to select the model to simulate 
+#'                                  # the stock dynamics.
+#'        fleets.ctrl = multiFlC,   # A list with several elements to select fleet dynamic 
+#'                                  # models and store additional parameters.
+#'        covars.ctrl = multiCvC,   # covars control not used 
+#'           obs.ctrl = multiObsC,  # A list with one element to define how the stock observed 
+#'                                  # ("PerfectObs").
+#'        assess.ctrl = multiAssC,  # A list with one element to define how the stock 
+#'                                  # assessment model used ("NoAssessment").
+#'        advice.ctrl = multiAdvC)  # A list with one element to define how the TAC advice is 
+#'                                  # obtained ("IcesHCR").
 #' 
 #' # Names of the object returned by FLBEIA
 #' names(s2)
@@ -193,7 +216,6 @@
 #' plotFLFleets(s2$fleets, pdfnm='s2')
 #' plotEco(s2, pdfnm='s2')
 #' plotfltStkSum(s2, pdfnm='s2')
-
 #' }
 #' 
 #' 
@@ -223,7 +245,7 @@ FLBEIA <- function(biols, GDGTs=NULL, SRs = NULL, BDs = NULL, fleets, covars = N
     stnms <- names(biols)
     
     # If SimultaneousMngt argument missing in main.ctrl => set it to FALSE, the original FLBEIA configuration.
-    main.ctrl$SimultaneousMngt <- ifelse(is.null(main.ctrl$SimultaneousMngt), FALSE, TRUE)
+    main.ctrl$SimultaneousMngt <- ifelse(is.null(main.ctrl$SimultaneousMngt), FALSE, ifelse(is.na(main.ctrl$SimultaneousMngt), FALSE, main.ctrl$SimultaneousMngt))
    
     # Check that all FLQuants have the rigth [ny,ns,it] dimensions. 
     chckdim0 <- checkDims(biols,  minyear, maxyear, ns, it)
@@ -274,7 +296,7 @@ FLBEIA <- function(biols, GDGTs=NULL, SRs = NULL, BDs = NULL, fleets, covars = N
       for (st in stnms) {
         
         # Assessment years
-        ass.yr[[st]] <- advice.ctrl[[st]][['ass.year']] # assessment years
+        ass.yr[[st]] <- assess.ctrl[[st]][['ass.year']] # assessment years
         if (is.null(ass.yr[[st]])) { # no value, then assessment yearly
           ass.yr[[st]] <- sim.years
         } else if (ass.yr[[st]]=='all' | is.na(ass.yr[[st]])) {
@@ -288,75 +310,90 @@ FLBEIA <- function(biols, GDGTs=NULL, SRs = NULL, BDs = NULL, fleets, covars = N
         }
         
         # Assessment seasons
-        ass.ss[[st]] <- advice.ctrl[[st]][['ass.season']]
+        ass.ss[[st]] <- assess.ctrl[[st]][['ass.season']]
         if (is.null(ass.ss[[st]])) { ass.ss[[st]] <- ns } else if (is.na(ass.ss[[st]])) { ass.ss[[st]] <- ns }
         if (!(ass.ss[[st]] %in% seasons)) stop("Assessment season for: '", st, "' outside season range in the objects")
         
         # Assessment year estimates necessary?
-        acy <- advice.ctrl[[st]]$ass.curryr # TRUE if estimates also for assessment year are needed
-        if (is.null(advice.ctrl[[st]]$ass.curryr)) { acy <- F } else if (is.na(advice.ctrl[[st]]$ass.curryr)) { acy <- F }
-        obs.ctrl[[st]]$obs.curryr <- assess.ctrl[[st]]$ass.curryr <- acy
+        # assess.ctrl[[st]]$ass.curryr=TRUE if estimates also for assessment year are needed
+        if (is.null(assess.ctrl[[st]]$ass.curryr)) { assess.ctrl[[st]]$ass.curryr <- F } else if (is.na(assess.ctrl[[st]]$ass.curryr)) { assess.ctrl[[st]]$ass.curryr <- F }
+        if (assess.ctrl[[st]]$ass.curryr==TRUE) obs.ctrl[[st]]$obs.curryr <- T
+        if (is.null(obs.ctrl[[st]]$obs.curryr)) { obs.ctrl[[st]]$obs.curryr <- F } else if (is.na(obs.ctrl[[st]]$obs.curryr)) { obs.ctrl[[st]]$obs.curryr <- F }
         
       }
       
     } else { # if main.ctrl$SimultaneousMngt == TRUE:
       
       # Assessment years NOT to be defined (are assumed to be all years)
-      if (!is.null(advice.ctrl[[st]][['ass.year']]))
+      if (!is.null(assess.ctrl[[st]][['ass.year']]))
         stop("Assessment years for: '", st, "' should not be defined if  main.ctrl$SimultaneousMngt == TRUE.
-              See advice.ctrl[['", st, "']][['ass.year']].")
-     
+              See assess.ctrl[['", st, "']][['ass.year']].")
+      
       # Assessment seasons NOT to be defined (are assumed to be only once, in the last season)
-      if (!is.null(advice.ctrl[[st]][['ass.season']]))
+      if (!is.null(assess.ctrl[[st]][['ass.season']]))
         stop("Assessment seasons for: '", st, "' should not be defined if main.ctrl$SimultaneousMngt == TRUE. 
-              See advice.ctrl[['", st, "']][['ass.season']].")
-
+              See assess.ctrl[['", st, "']][['ass.season']].")
+      
       # No possibility of doing the assessment in current year
       obs.ctrl <- lapply(obs.ctrl, function(x){
-                                        x[['obs.curryr']] <- FALSE
-                                        return(x)})
+        x[['obs.curryr']] <- FALSE
+        return(x)})
       assess.ctrl <- lapply(assess.ctrl, function(x){
         x[['ass.curryr']] <- FALSE
         return(x)})
       
-      }
-     
+    }
+    
     for(yr in sim.years){
       for(ss in seasons){
-            cat('############################################################\n')
-            cat('-                   Year: ', yr, ', Season: ',ss, '\n')
-            cat('############################################################\n')
-            #~~~~~~~~~~~~~~~~ OPERATING MODELS (seasonal) ~~~~~~~~~~~~~~~~~~~~~#
-
+        cat('############################################################\n')
+        cat('-                   Year: ', yr, ', Season: ',ss, '\n')
+        cat('############################################################\n')
+        #~~~~~~~~~~~~~~~~ OPERATING MODELS (seasonal) ~~~~~~~~~~~~~~~~~~~~~#
+        
         cat('************ OPERATING MODEL***************************\n')
         
         cat('------------ BIOLOGICAL OM ------------\n')
-            # - Biologic OM.
-            res   <- biols.om (biols = biols, fleets = fleets, GDGTs=GDGTs, SRs = SRs, BDs = BDs, covars = covars, biols.ctrl = biols.ctrl, year = yr, season = ss)
-            biols <- res$biols
-            SRs   <- res$SRs
-            BDs   <- res$BDs
-	    # For gadget
-	    GDGTs <- res$GDGTs
+        # - Biologic OM.
+        res   <- biols.om (biols = biols, fleets = fleets, GDGTs=GDGTs, SRs = SRs, BDs = BDs, covars = covars, biols.ctrl = biols.ctrl, year = yr, season = ss)
+        biols <- res$biols
+        SRs   <- res$SRs
+        BDs   <- res$BDs
+	# For gadget
+	GDGTs <- res$GDGTs
 
         cat('------------ FLEETS OM ------------\n')
-            # - Fleets OM.
-            res        <- fleets.om(fleets = fleets, biols = biols, GDGTs = GDGTs, SRs = SRs, BDs = BDs, covars = covars, advice = advice, biols.ctrl = biols.ctrl, fleets.ctrl = fleets.ctrl, advice.ctrl = advice.ctrl, year = yr, season = ss)
-            fleets     <- res$fleets
-            fleets.ctrl <- res$fleets.ctrl
-            covars     <- res$covars
-            biols <- res$biols
-            SRs   <- res$SRs
-	    # For gadget
-	    GDGTs <- res$GDGTs
+        # - Fleets OM.
+        res        <- fleets.om(fleets = fleets, biols = biols, GDGTs = GDGTs, SRs = SRs, BDs = BDs, covars = covars, advice = advice, biols.ctrl = biols.ctrl, fleets.ctrl = fleets.ctrl, advice.ctrl = advice.ctrl, year = yr, season = ss)
+        fleets     <- res$fleets
+        fleets.ctrl <- res$fleets.ctrl
+        covars     <- res$covars
+        biols <- res$biols
+        SRs   <- res$SRs
+	# For gadget
+	GDGTs <- res$GDGTs
 
+	# ORIGINAL FLBEIA BELOW
+        # - Biologic OM.
+        #res   <- biols.om (biols = biols, fleets = fleets, SRs = SRs, BDs = BDs, covars = covars, biols.ctrl = biols.ctrl, year = yr, season = ss)
+        #biols <- res$biols
+        #SRs   <- res$SRs
+        #BDs   <- res$BDs
+        
+        #cat('------------ FLEETS OM ------------\n')
+        # - Fleets OM.
+        #res        <- fleets.om(fleets = fleets, biols = biols, BDs = BDs, covars = covars, advice = advice, biols.ctrl = biols.ctrl, fleets.ctrl = fleets.ctrl, advice.ctrl = advice.ctrl, year = yr, season = ss)
+        #fleets     <- res$fleets
+        #fleets.ctrl <- res$fleets.ctrl
+        #covars     <- res$covars
+        
         cat('------------ COVARS OM ------------\n')
-            # - Covariables OM. (the covariables can affect the covariables themselfs but also the biols and fleets, biols.ctrl and fleets.ctrl)
-            res    <- covars.om(fleets = fleets, biols = biols, SRs = SRs, covars = covars, advice = advice, covars.ctrl = covars.ctrl, year = yr, season = ss)
-            covars <- res$covars
-            biols  <- res$biols
-            fleets <- res$fleets
-            SRs    <- res$SRs
+        # - Covariables OM. (the covariables can affect the covariables themselfs but also the biols and fleets, biols.ctrl and fleets.ctrl)
+        res    <- covars.om(fleets = fleets, biols = biols, SRs = SRs, covars = covars, advice = advice, covars.ctrl = covars.ctrl, year = yr, season = ss)
+        covars <- res$covars
+        biols  <- res$biols
+        fleets <- res$fleets
+        SRs    <- res$SRs
         
         
         # In last year of the simulation, if last season, there is no assessment => go to the end.
@@ -439,6 +476,6 @@ FLBEIA <- function(biols, GDGTs=NULL, SRs = NULL, BDs = NULL, fleets, covars = N
     
     if(!exists('stocks'))  stocks <- NULL
     
-    return(list(biols = biols, fleets = fleets, covars = covars,  advice = advice, stocks = stocks, indices = indices,  fleets.ctrl = fleets.ctrl,
+    return(list(biols = biols, fleets = fleets, covars = covars,  advice = advice, stocks = stocks, indices = indices, BDs = BDs, SRs = SRs, fleets.ctrl = fleets.ctrl,
                       pkgs.versions = installed.packages(fields = 'Packaged')[,c('Built', 'Version', 'Packaged')]))
 }
