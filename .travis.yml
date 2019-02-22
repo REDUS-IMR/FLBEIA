@@ -30,6 +30,9 @@ addons:
 
 r_github_packages: mawp/spict/spict
 
+before_install:
+  - tlmgr install placeins.sty
+
 notifications:
   email:
     on_success: change
