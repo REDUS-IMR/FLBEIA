@@ -76,8 +76,7 @@ perfectObs <- function(biol, fleets, covars, obs.ctrl, year = 1, season = NULL, 
     # rec = n[1,,1,1] + n[1,,2,2] + n[1,,3,3] + n[1,,4,4]
     # n up to (year) to use it after in the 'f' calculation.
     n <- unitSums(biol@n)[,1:year,,1]
-    n[n == 0] <- 1e-6   # if n == 0 replace it by a small number to avoid 'Inf' in harvest.
-        
+         
     if(dim(biol@n)[3] > 1){
         for(u in 2:dim(biol@n)[3])
             n[1,] <- n[1,] + biol@n[1,1:year,u,u]
@@ -90,7 +89,9 @@ perfectObs <- function(biol, fleets, covars, obs.ctrl, year = 1, season = NULL, 
     # for current year if season before recruitment season:
     if (ss != ns)
       n[1,1:(year-1),] <- ifelse( is.na(n[1,1:(year-1),]), 0, n[1,1:(year-1),])
-         
+    
+    n[n == 0] <- 1e-6   # if n == 0 replace it by a small number to avoid 'Inf' in harvest.
+    
     stock.n(res) <- n[,1:(year-1)]
     
     stock(res) <- quantSums(res@stock.n*res@stock.wt)
@@ -610,7 +611,7 @@ bio1plusInd <- function(biol, index, obs.ctrl, year, stknm,...){
   
   it <- dim(biol@n)[6]
   ns <- dim(biol@n)[4]
-  a1plus <- which(dimnames(biol@n)$age=='1'):dim(biols$PIL@n)[1]
+  a1plus <- which(dimnames(biol@n)$age=='1'):dim(biol@n)[1]
   
   # Year  => Character, because the year dimension in indices does not coincide with year dimension in biol.
   yrnm   <- dimnames(biol@n)[[2]][year]   
@@ -670,7 +671,7 @@ ssbInd <- function(biol, fleets, index, obs.ctrl, year, season,...){
 #   index.var is no longer used to store the uncertainty of the index. The uncertainty can be incorporate in 
 #   the slot index.q, ie., @index.q = q*err
 #-------------------------------------------------------------------------------   
-cbbmInd <- function(biol, index, obs.ctrl, year, season,...){
+cbbmInd <- function(biol, fleets, index, obs.ctrl, year, season,...){
   
   it <- dim(biol@n)[6]
   ns <- dim(biol@n)[4]

@@ -21,13 +21,15 @@
 #'}
 #'\itemize{
 #'       \item{aneHCRE:} {The HCR used in the bay of biscay anchovy long term management plan.}
+#'       \item{aneHCRs:} {The HCRs (escapement biomass) tested for the bay of biscay anchovy with different calendars.
+#'                        For details see Sanchez et al. 2019. MEPS 617-618: 245-263.}
 #'       \item{annexIVHCR:} {The HCR used by EC and ICES to generate the TAC advice for data poor stocks.}
 #'       \item{annualTAC:} {A HCR that generates annual TAC advice. The HCR provides the whole flexibility of fwd.}
 #'       \item{CFPMSYHCR:} {HCR adapting the MAP HCR to allow flexibility in the year Fmsy is achieved. 
 #'               The user can specify the year in which you aim to reach Fmsy, with a linear transition between
 #'               Fsq to Fmsy in the intervening years}
 #'       \item{F2CatchHCR:} {This HCR transforms the fishing mortality advice given as input data to catch advice without any other restriction.}
-#'       \item{FroeseHCR:} {The HCR defined in the paper by Froese, Branch et al. in Fish and Fisheries 2010.}
+#'       \item{FroeseHCR:} {The HCR defined in the paper by Froese, Branch et al. in Fish and Fisheries 2011.}
 #'       \item{ghlHCR:} {The model-free HCR used in the management of greenland-halibut}
 #'       \item{IcesHCR:} {The HCR used by ICES to generate TAC advice in the MSY framework.}
 #'       \item{little2011HCR:} {The HCR defined in the paper by Little et al. in ICES Journal of Marine Science 2011.}

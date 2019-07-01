@@ -86,6 +86,7 @@
 #' # Create summary data frames (biological, economic, and catch)
 #' proj.yr     <- 2013 
 #' s0_sum      <- bioSum(s0)
+#' s0$fleets$fl1 <- setUnitsNA(s0$fleets$fl1) # set units to NA to avoid errors in fltSum
 #' s0_flt      <- fltSum(s0)
 #' s0_fltStk   <- fltStkSum(s0)
 #'
@@ -138,6 +139,7 @@
 #' # Create summary data frames (biological, economic, and catch)
 #' proj.yr     <- 2013 
 #' s1_bio     <- bioSum(s1)
+#' s1$fleets$fl1 <- setUnitsNA(s1$fleets$fl1) # set units to NA to avoid errors in fltSum
 #' s1_flt     <- fltSum(s1)
 #' s1_fltStk  <- fltStkSum(s1)
 #' 
@@ -203,6 +205,8 @@
 #' # Create summary data frames (biological, economic, and catch)
 #' 
 #' s2_sum      <- bioSum(s2)
+#' for (fl in names(s2$fleets))  # set units to NA to avoid errors in fltSum
+#'   s2$fleets[[fl]] <- setUnitsNA(s2$fleets[[fl]])
 #' s2_flt      <- fltSum(s2)
 #' 
 #' s2b_flt     <- fltSum(s2, byyear = FALSE)
@@ -251,19 +255,7 @@ FLBEIA <- function(biols, GDGTs=NULL, SRs = NULL, BDs = NULL, fleets, covars = N
     chckdim0 <- checkDims(biols,  minyear, maxyear, ns, it)
     chckdim1 <- checkDims(fleets, minyear, maxyear, ns, it)
     if(!is.null(covars)) chckdim2 <- checkDims(covars, minyear, maxyear, ns, it)
-    # Check when the model to describe BD is Pellatom, that alpha has the right values.
-
-    if(!is.null(BDs)){
-      BDnms<- names(BDs)
-      for(stk.bd in BDnms){
-        if(BDs[[stk.bd]]@model=="PellaTom"){
-          p <- BDs[[stk.bd]]@params["p",,,]
-          r <- BDs[[stk.bd]]@params["r",,,]
-          K <- BDs[[stk.bd]]@params["K",,,]
-          if(any(BDs[[stk.bd]]@alpha<1) || any(as.vector(BDs[[stk.bd]]@alpha) > as.vector(((p/r+1)^(1/p))))){
-            stop("alpha<1 or alpha > min((p/r+1)^(1/p))")
-          }}}}
-    
+   
     # Extract years, check and convert into positions.
     sim.years <- as.numeric(main.ctrl$sim.years)
     if(!(sim.years[1] %in% as.numeric(minyear):as.numeric(maxyear))) stop('First simulation year is outside year range in the objects')

@@ -3,15 +3,17 @@ import("FLFleet")
 import("methods")
 importFrom("grDevices", "dev.off", "pdf")
 importFrom("stats", "aggregate", "anova", "as.formula", "coef", "cor",
-  "reshape", "formula", "lm", "mad", "optimize", "terms", "uniroot")
+  "reshape", "formula", "lm", "mad", "optimize", "terms", "uniroot", "optim", "na.pass")
 importFrom("utils", "data", "installed.packages")
 import("ggplot2")
-importFrom("stats", "optim")
 importFrom("utils", "read.csv")
-
-#importFrom("mvtnorm", "rmvnorm")
-#importFrom("nloptr", "nloptr")
-#importFrom("triangle", "rtriangle")
+import("FLXSA")
+import("FLa4a")
+import("FLash")
+import("Matrix")
+import("plyr")
+importFrom("mvtnorm", "rmvnorm")
+importFrom("triangle", "rtriangle")
 
 export(
 "advSum",
@@ -29,6 +31,13 @@ export(
   "catchStock.f",
   "catchWStock",
   "catchWStock.f",
+  "checkAdvice",
+  "checkBDs",
+  "checkBiols",
+  "checkFLBEIAData",
+  "checkFleets",
+  "checkObsctrl",
+  "checkSRs",
   "CFPMSYHCR", 
   "costs_flbeia",
   "create.advice.ctrl",
@@ -100,8 +109,8 @@ export(
   "R_flbeia",
   "riskSum",
   "revenue_flbeia",
+  "segregmix",
   "SelAtAge",
-  "setUnitsNA",
   "SSB_flbeia",
   "stock.fleetInfo",
   "summary_flbeia",
@@ -133,7 +142,8 @@ exportMethods(
   "FLMetiersExt",
   "is.FLCatchesExt",
   "is.FLFleetsExt",
-  "is.FLMetiersExt"
+  "is.FLMetiersExt", 
+  "setUnitsNA"
 )
 
 exportClasses(
