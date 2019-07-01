@@ -88,6 +88,7 @@ Collate:
     "MP_2_Assessment.R"
     "MP_2_Assessment_sca2flbeia.R"
     "MP_2_Assessment_spict2flbeia.R"
+    "MP_2_Assessment_sam2flbeia.R"
     "MP_3_Advice.R"
     "MP_3a_fwdBD.R"
     "MP_3a_fwdBDControl.R"
