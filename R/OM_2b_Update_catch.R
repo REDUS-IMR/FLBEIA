@@ -50,9 +50,159 @@ updateCatch <- function(fleets, biols, GDGTs, SRs, BDs, covars, advice, biols.ct
 
 
 #-------------------------------------------------------------------------------
-# gadgetCatch(fleets, biols, year = 1, season = 1)
+# gadgetCatch2(fleets, biols, year = 1, season = 1)
 #-------------------------------------------------------------------------------
 gadgetCatch.CAA  <- function(fleets, biols, GDGTs, SRs, BDs, biols.ctrl, fleets.ctrl, advice, year = 1, season = 1, flnm = 1, stknm = 1, ...){
+
+    yr <- year
+    ss <- season
+    f  <- flnm
+    st <- stknm
+
+    fleets <- unclass(fleets)
+
+    fl    <- fleets[[f]]
+    sts   <- catchNames(fl)
+    mtnms <- names(fl@metiers)
+
+    #print(advice)
+    #print(advice.ctrl)
+
+    if(!(st %in% sts)) return(list(fleets = fleets, biols = biols, SRs = SRs, GDGTs = GDGTs))
+
+    ## USE info from last season
+   #prevyr <- 0
+   #prevss <- 0
+   #ssTot <- dim(biols[[st]]@n)[4]
+   #if(ss == 1) {
+#	prevyr <- yr - 1
+#	prevss <- ssTot
+ #  } else {
+#	prevss <- ss -1
+ #  }
+#
+  #  biolsTmp <- biols
+#
+ #   biols[[st]]@n[,yr,,ss] <- biols[[st]]@n[,prevyr,,prevss]
+  #  biols[[st]]@m[,yr,,ss] <- biols[[st]]@m[,prevyr,,prevss]
+   # flRet <- CobbDouglasAge.CAA(fleets, biols, BDs, biols.ctrl, fleets.ctrl, advice, year, season, flnm, stknm,...)
+
+    #biols <- biolsTmp 
+
+    runBio <- FALSE
+
+    # If it's a start of the year, run BioOM
+    if(isGadgetInitialized() == FALSE){
+	print("First run!")
+	setwd(GDGTs$gadget.inputDir)
+	# Load parameters
+	gadget(c("-s", "-main", GDGTs$gadget.mainFile, "-i", GDGTs$gadget.paramFile))
+
+	# Initialize simulation
+	initSim()
+
+	# Record the start year
+	simInfo <- getEcosystemInfo()
+	GDGTs$startYear <- simInfo[["time"]][["currentYear"]]
+
+	# We will always run gadget at the first run
+	runBio <- TRUE
+
+	GDGTs$firstRun <- TRUE
+	GDGTs$runNow <- TRUE
+    }
+
+    # Check whether this is a start of a year
+    simInfo <- getEcosystemInfo()
+    curYear <- simInfo[["time"]][["currentYear"]]
+    startYear <- GDGTs$startYear
+
+    if((curYear - startYear + 1) == year){
+        runBio <- TRUE
+    }
+
+    # Set to use future fleets. TODO: Make it dynamic
+    curGadgetStockName <- convertStockName[[st]]
+    curGadgetFleetName <- convertFleetName[[f]]
+
+    print(paste("Fleet", curGadgetFleetName, "Stock", curGadgetStockName))
+
+    if(runBio == TRUE){
+	# Run Gadget for this specific year
+	GDGTs$runNow <- TRUE
+        cat('------------ BIOLOGICAL OM (UNDER GADGET)------------\n')
+        # - Biologic OM.
+        res   <- biols.om (biols = biols, fleets = fleets, GDGTs = GDGTs, SRs = SRs, BDs = BDs, covars = covars, biols.ctrl = biols.ctrl, year = yr, season = ss)
+        biols <- res$biols
+        SRs   <- res$SRs
+        # For gadget
+        GDGTs <- res$GDGTs
+        GDGTs$runNow <- FALSE
+    }
+    
+    # RUN CobbDouglasAge
+    flRet <- CobbDouglasAge.CAA(fleets, biols, BDs, biols.ctrl, fleets.ctrl, advice, year, season, flnm, stknm,...)
+
+    # Calculate Catch (for next year in gadget)
+    catchTot <- NA
+    for(mt in 1:length(mtnms)){
+
+        if(!(st %in% names(flRet$fleets[[f]]@metiers[[mt]]@catches))) next
+
+        cobj <- flRet$fleets[[f]]@metiers[[mt]]@catches[[st]]
+
+	# Get total catch
+	if(is.na(catchTot))
+		catchTot <- landings.n(cobj)[,yr,,ss] + discards.n(cobj)[,yr,,ss]
+	else
+		catchTot <- catchTot + landings.n(cobj)[,yr,,ss] + discards.n(cobj)[,yr,,ss]
+    }
+
+
+    # Apply catch (for next year in gadget)
+    if(is.na(catchTot)) catchTot <- 0
+    print("catch: ")
+    print(catchTot)
+    print("tac: ")
+    print(as.numeric(advice$TAC[st, as.character(startYear + year - 1)]))
+
+    # Get forecast fleets
+    forecastFleets <- eval(parse(text=paste0(curGadgetStockName, ".forecasts")))
+
+    # Control the catch amount
+    # Assuming equally distributed catch between fleets
+    nFleet <- length(forecastFleets)
+    catchTot <- catchTot/nFleet
+
+    # Don't update gadget in the last year
+if(isGadgetInitialized()) {
+
+    ssTot <- dim(biols[[st]]@n)[4]
+
+if(ss == ssTot) {
+	nextSS = 1
+	nextYear <- startYear + year
+}else {
+
+	nextSS <- ss + 1
+	nextYear <- startYear + year - 1
+}
+
+    print(paste("Next step is: ", nextYear, nextSS))
+
+    print(paste(curGadgetFleetName, nextYear, nextSS, 1, colSums(catchTot)))
+    updateAmount(curGadgetFleetName, nextYear, nextSS, 1, colSums(catchTot))
+}
+    fleets[[f]] <- flRet$fleets[[f]]
+
+    return(list(fleets = fleets, biols = biols, SRs = SRs, GDGTs = GDGTs))
+}
+
+
+#-------------------------------------------------------------------------------
+# gadgetCatch(fleets, biols, year = 1, season = 1)
+#-------------------------------------------------------------------------------
+gadgetCatch2.CAA  <- function(fleets, biols, GDGTs, SRs, BDs, biols.ctrl, fleets.ctrl, advice, year = 1, season = 1, flnm = 1, stknm = 1, ...){
 
     yr <- year
     ss <- season
@@ -491,7 +641,7 @@ CobbDouglasAge.CAA <- function(fleets, biols, BDs, biols.ctrl, fleets.ctrl, advi
     
 #    fleets <- FLFleetsExt(fleets)
     
-    return(list(fleets = fleets, biols = biols, SRs = SRs, GDGTs = GDGTs))
+    return(list(fleets = fleets, biols = biols, SRs = SRs))
 }
 
 
@@ -671,7 +821,6 @@ CorrectCatch <- function(fleets, biols, BDs, biols.ctrl,fleets.ctrl, year = 1, s
 
             # CORRECT Ca if Ca > Ba, the correction is common for all the fleets.
             for(i in 1:it){
-
                 if(any((Ba[[st]][,,,,,i]*cth[st,i] - Cat[,,,,,i]) < 0)){
 
                     cat('Ba*cth < Ca, for some "a" in stock',st, ', and iteration ', i,  '\n')
