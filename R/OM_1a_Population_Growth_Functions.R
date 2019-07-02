@@ -407,9 +407,14 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 		out <- finalize()
 	}
 
+	print("Biol@wt")
 	print(biol@wt)
+	print("Biol@n")
 	print(biol@n)
+
+	print("SR@ssb")
 	print(SR@ssb)
+	print("SR@rec")
 	print(SR@rec)
 
 	print("Gadget ends")
