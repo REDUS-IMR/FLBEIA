@@ -156,6 +156,9 @@ gadgetCatch.CAA  <- function(fleets, biols, GDGTs, SRs, BDs, biols.ctrl, fleets.
 		catchTot <- landings.n(cobj)[,yr,,ss] + discards.n(cobj)[,yr,,ss]
 	else
 		catchTot <- catchTot + landings.n(cobj)[,yr,,ss] + discards.n(cobj)[,yr,,ss]
+
+	# Get total catch biomass
+	catchTot <- catchTot * landings.wt(cobj)[,yr,,ss]
     }
 
 
