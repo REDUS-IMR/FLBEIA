@@ -112,7 +112,7 @@ gadgetCatch.CAA  <- function(fleets, biols, GDGTs, SRs, BDs, biols.ctrl, fleets.
 	GDGTs$runNow <- TRUE
     }
 
-    # Check whether this is a start of a year
+    # Check whether this is a start of a year (for gadget to run)
     simInfo <- getEcosystemInfo()
     curYear <- simInfo[["time"]][["currentYear"]]
     startYear <- GDGTs$startYear
@@ -128,6 +128,58 @@ gadgetCatch.CAA  <- function(fleets, biols, GDGTs, SRs, BDs, biols.ctrl, fleets.
     print(paste("Fleet", curGadgetFleetName, "Stock", curGadgetStockName))
 
     if(runBio == TRUE){
+
+	# Get FLBEIA last year's catch (for this year catch in gadget) #
+	print(paste("Getting last year catch for Gadget"))
+
+	## Get previous year
+	prevYr <- yr - 1
+
+	## Get total season (assume gadget has the same amount of steps with FLBEIA season)
+	ssTot <- dim(biols[[st]]@n)[4]
+
+	for(sTmp in 1:ssTot) {
+
+		print(paste("Season: ", sTmp))
+
+		catchTot <- NA
+		for(mt in 1:length(mtnms)){
+
+			if(!(st %in% names(fleets[[f]]@metiers[[mt]]@catches))) next
+
+			cobj <- fleets[[f]]@metiers[[mt]]@catches[[st]]
+
+			# Get total catch
+			if(is.na(catchTot))
+				catchTot <- landings.n(cobj)[,prevYr,,sTmp] + discards.n(cobj)[,prevYr,,sTmp]
+			else
+				catchTot <- catchTot + landings.n(cobj)[,prevYr,,sTmp] + discards.n(cobj)[,prevYr,,sTmp]
+
+			# Get total catch biomass
+			catchTot <- catchTot * landings.wt(cobj)[,prevYr,,sTmp]
+		}
+
+		# Apply catch (for next year in gadget)
+		if(is.na(catchTot)) catchTot <- 0
+		print(paste((startYear + year - 2), " catch is: "))
+		print(catchTot)
+
+		print(paste((startYear + year - 2), " tac is: "))
+		print(as.numeric(advice$TAC[st, as.character(startYear + year - 2)]))
+
+		# Get forecast fleets
+		forecastFleets <- eval(parse(text=paste0(curGadgetStockName, ".forecasts")))
+
+		# Control the catch amount
+		# Assuming equally distributed catch between fleets
+		nFleet <- length(forecastFleets)
+		catchTot <- catchTot/nFleet
+
+		print(paste(curGadgetFleetName, (startYear + year - 1), sTmp, 1, colSums(catchTot)))
+		updateAmount(curGadgetFleetName, (startYear + year - 1), sTmp, 1, colSums(catchTot))
+	}
+
+
 	# Run Gadget for this specific year
 	GDGTs$runNow <- TRUE
         cat('------------ BIOLOGICAL OM (UNDER GADGET)------------\n')
@@ -139,64 +191,12 @@ gadgetCatch.CAA  <- function(fleets, biols, GDGTs, SRs, BDs, biols.ctrl, fleets.
         GDGTs <- res$GDGTs
         GDGTs$runNow <- FALSE
     }
-    
+
     # RUN CobbDouglasAge
     flRet <- CobbDouglasAge.CAA(fleets, biols, BDs, biols.ctrl, fleets.ctrl, advice, year, season, flnm, stknm,...)
 
-    # Calculate Catch (for next year in gadget)
-    catchTot <- NA
-    for(mt in 1:length(mtnms)){
-
-        if(!(st %in% names(flRet$fleets[[f]]@metiers[[mt]]@catches))) next
-
-        cobj <- flRet$fleets[[f]]@metiers[[mt]]@catches[[st]]
-
-	# Get total catch
-	if(is.na(catchTot))
-		catchTot <- landings.n(cobj)[,yr,,ss] + discards.n(cobj)[,yr,,ss]
-	else
-		catchTot <- catchTot + landings.n(cobj)[,yr,,ss] + discards.n(cobj)[,yr,,ss]
-
-	# Get total catch biomass
-	catchTot <- catchTot * landings.wt(cobj)[,yr,,ss]
-    }
-
-
-    # Apply catch (for next year in gadget)
-    if(is.na(catchTot)) catchTot <- 0
-    print("catch: ")
-    print(catchTot)
-    print("tac: ")
-    print(as.numeric(advice$TAC[st, as.character(startYear + year - 1)]))
-
-    # Get forecast fleets
-    forecastFleets <- eval(parse(text=paste0(curGadgetStockName, ".forecasts")))
-
-    # Control the catch amount
-    # Assuming equally distributed catch between fleets
-    nFleet <- length(forecastFleets)
-    catchTot <- catchTot/nFleet
-
-    # Don't update gadget in the last year
-if(isGadgetInitialized()) {
-
-    ssTot <- dim(biols[[st]]@n)[4]
-
-if(ss == ssTot) {
-	nextSS = 1
-	nextYear <- startYear + year
-}else {
-
-	nextSS <- ss + 1
-	nextYear <- startYear + year - 1
-}
-
-    print(paste("Next step is: ", nextYear, nextSS))
-
-    print(paste(curGadgetFleetName, nextYear, nextSS, 1, colSums(catchTot)))
-    updateAmount(curGadgetFleetName, nextYear, nextSS, 1, colSums(catchTot))
-}
     fleets[[f]] <- flRet$fleets[[f]]
+
 
     return(list(fleets = fleets, biols = biols, SRs = SRs, GDGTs = GDGTs))
 }
