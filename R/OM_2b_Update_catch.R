@@ -117,80 +117,79 @@ gadgetCatch.CAA  <- function(fleets, biols, GDGTs, SRs, BDs, biols.ctrl, fleets.
     curYear <- simInfo[["time"]][["currentYear"]]
     startYear <- GDGTs$startYear
 
-    if((curYear - startYear + 1) == year){
-        runBio <- TRUE
-    }
-
     # Set to use future fleets. TODO: Make it dynamic
     curGadgetStockName <- convertStockName[[st]]
     curGadgetFleetName <- convertFleetName[[f]]
 
     print(paste("Fleet", curGadgetFleetName, "Stock", curGadgetStockName))
 
-    if(runBio == TRUE){
+    # Get FLBEIA last year's catch (for this year catch in gadget) #
+    print(paste("Getting last year catch for Gadget"))
 
-	# Get FLBEIA last year's catch (for this year catch in gadget) #
-	print(paste("Getting last year catch for Gadget"))
+    ## Get total season (assume gadget has the same amount of steps with FLBEIA season)
+    ssTot <- dim(biols[[st]]@n)[4]
 
-	## Get previous year
+    ## Get previous year
+    prevYr <- yr - 1
+    if(ss == 1) {
 	prevYr <- yr - 1
+	prevSs <- ssTot
+    } else {
+	prevSs <- ss -1
+    }
 
-	## Get total season (assume gadget has the same amount of steps with FLBEIA season)
-	ssTot <- dim(biols[[st]]@n)[4]
+    if(!GDGTs$firstRun) {
 
-	for(sTmp in 1:ssTot) {
+	print(paste("Prev Year: ", prevYr))
+	print(paste("Prev Season: ", prevSs))
 
-		print(paste("Season: ", sTmp))
+	catchTot <- NA
+	for(mt in 1:length(mtnms)){
 
-		catchTot <- NA
-		for(mt in 1:length(mtnms)){
+		if(!(st %in% names(fleets[[f]]@metiers[[mt]]@catches))) next
 
-			if(!(st %in% names(fleets[[f]]@metiers[[mt]]@catches))) next
+		cobj <- fleets[[f]]@metiers[[mt]]@catches[[st]]
 
-			cobj <- fleets[[f]]@metiers[[mt]]@catches[[st]]
+		# Get total catch
+		if(is.na(catchTot))
+			catchTot <- landings.n(cobj)[,prevYr,,prevSs] + discards.n(cobj)[,prevYr,,prevSs]
+		else
+			catchTot <- catchTot + landings.n(cobj)[,prevYr,,prevSs] + discards.n(cobj)[,prevYr,,prevSs]
 
-			# Get total catch
-			if(is.na(catchTot))
-				catchTot <- landings.n(cobj)[,prevYr,,sTmp] + discards.n(cobj)[,prevYr,,sTmp]
-			else
-				catchTot <- catchTot + landings.n(cobj)[,prevYr,,sTmp] + discards.n(cobj)[,prevYr,,sTmp]
-
-			# Get total catch biomass
-			catchTot <- catchTot * landings.wt(cobj)[,prevYr,,sTmp]
-		}
-
-		# Apply catch (for next year in gadget)
-		if(is.na(catchTot)) catchTot <- 0
-		print(paste((startYear + year - 2), " catch is: "))
-		print(catchTot)
-
-		print(paste((startYear + year - 2), " tac is: "))
-		print(as.numeric(advice$TAC[st, as.character(startYear + year - 2)]))
-
-		# Get forecast fleets
-		forecastFleets <- eval(parse(text=paste0(curGadgetStockName, ".forecasts")))
-
-		# Control the catch amount
-		# Assuming equally distributed catch between fleets
-		nFleet <- length(forecastFleets)
-		catchTot <- catchTot/nFleet
-
-		print(paste(curGadgetFleetName, (startYear + year - 1), sTmp, 1, colSums(catchTot)))
-		updateAmount(curGadgetFleetName, (startYear + year - 1), sTmp, 1, colSums(catchTot))
+		# Get total catch biomass
+		catchTot <- catchTot * landings.wt(cobj)[,prevYr,,prevSs]
 	}
 
+	# Apply catch (for next year in gadget)
+	if(is.na(catchTot)) catchTot <- 0
+	print(paste((startYear + year - 2), " catch is: "))
+	print(catchTot)
 
-	# Run Gadget for this specific year
-	GDGTs$runNow <- TRUE
-        cat('------------ BIOLOGICAL OM (UNDER GADGET)------------\n')
-        # - Biologic OM.
-        res   <- biols.om (biols = biols, fleets = fleets, GDGTs = GDGTs, SRs = SRs, BDs = BDs, covars = covars, biols.ctrl = biols.ctrl, year = yr, season = ss)
-        biols <- res$biols
-        SRs   <- res$SRs
-        # For gadget
-        GDGTs <- res$GDGTs
-        GDGTs$runNow <- FALSE
+	print(paste((startYear + year - 2), " tac is: "))
+	print(as.numeric(advice$TAC[st, as.character(startYear + year - 2)]))
+
+	# Get forecast fleets
+	forecastFleets <- eval(parse(text=paste0(curGadgetStockName, ".forecasts")))
+
+	# Control the catch amount
+	# Assuming equally distributed catch between fleets
+	nFleet <- length(forecastFleets)
+	catchTot <- catchTot/nFleet
+
+	print(paste(curGadgetFleetName, (startYear + year - 1), prevSs, 1, colSums(catchTot)))
+	updateAmount(curGadgetFleetName, (startYear + year - 1), prevSs, 1, colSums(catchTot))
     }
+
+    # Run Gadget for this specific season
+    GDGTs$runNow <- TRUE
+    cat('------------ BIOLOGICAL OM (UNDER GADGET)------------\n')
+    # - Biologic OM.
+    res   <- biols.om (biols = biols, fleets = fleets, GDGTs = GDGTs, SRs = SRs, BDs = BDs, covars = covars, biols.ctrl = biols.ctrl, year = yr, season = ss)
+    biols <- res$biols
+    SRs   <- res$SRs
+    # For gadget
+    GDGTs <- res$GDGTs
+    GDGTs$runNow <- FALSE
 
     # RUN CobbDouglasAge
     flRet <- CobbDouglasAge.CAA(fleets, biols, BDs, biols.ctrl, fleets.ctrl, advice, year, season, flnm, stknm,...)

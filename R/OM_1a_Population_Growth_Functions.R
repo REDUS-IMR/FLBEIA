@@ -325,14 +325,16 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 
 	# Check if this is gadget first run?
 	if(GDGT$firstRun){
-
 		startYear <- GDGT$startYear
-		curYear <- startYear
 
-		print(paste("Start year is", curYear, (curYear - startYear + 1)))
+		simInfo <- getEcosystemInfo()
+		curYear <- simInfo[["time"]][["currentYear"]]
+		curStep <- simInfo[["time"]][["currentStep"]]
 
-		# Run until the current FLBEIA year
-		gadgetSimOut <- runUntil(projYear-1)
+		print(paste("Gadget first run: Start year is", curYear, year, " gadget step : season", curStep, ":", season))
+
+		# Run until the start of FLBEIA projection year
+		gadgetSimOut <- runUntil(projYear)
 
 		# Expand FLStock and FLIndex
 		gadgetSimOut[[curGadgetStockName]]$stk <- expand(gadgetSimOut[[curGadgetStockName]]$stk, year=firstYear:finalYear)
@@ -344,55 +346,40 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 		biol@wt<- stock.wt(gadgetSimOut[[curGadgetStockName]]$stk)
 		biol@n <- stock.n(gadgetSimOut[[curGadgetStockName]]$stk)
 
-		# Run for this year and collect the stats
-		simInfo <- getEcosystemInfo()
-		curYear <- simInfo[["time"]][["currentYear"]]
-		stats <- runYear()
-
-		# Create the list for the stats
-		GDGT[["currentStats"]] <- list()
-
-		# Put the statistics information for this year
-		GDGT[["currentStats"]][[as.character(year)]] <- stats
-
 		# Put the FLstock and FLindex information
 		GDGT[["gadgetSimOut"]] <- gadgetSimOut
 
-		GDGT$firstRun <- FALSE
-	}else{
-		# Check whether this is another species or a start of the year
-		simInfo <- getEcosystemInfo()
-		curYear <- simInfo[["time"]][["currentYear"]]
-		startYear <- GDGT$startYear
-
-		print(paste("Year now is", curYear, (curYear - startYear + 1)))
-
-		if((curYear - startYear + 1) == year){
-			# Run subsequent steps
-			stats <- runYear()
-			# Put the statistics information for this year
-			GDGT[["currentStats"]][[as.character(year)]] <- stats
-			# Start from the first stock
-		}else{
-			# Get stats for the current year
-			stats <- GDGT[["currentStats"]][[as.character(year)]]
-			curYear <- curYear - 1
-		}
+		# Create the list for the stats
+		GDGT[["currentStats"]] <- list()
 	}
+
+	GDGT$firstRun <- FALSE
+
+	# Run for this timestep and collect the stats
+	simInfo <- getEcosystemInfo()
+	curYear <- simInfo[["time"]][["currentYear"]]
+	curStep <- simInfo[["time"]][["currentStep"]]
+
+	print(paste("Gadget step run: Year now is", curYear, year, " gadget step : season", curStep, ":", season))
+ 
+	stats <- runStep()
+
+	# Put the statistics information for this year
+	GDGT[["currentStats"]][[as.character(year)]][[as.character(season)]] <- stats
 
 	iter <- 1
 
 	# Update FLStock(and FLIdx) (using the latest simout)
 	gadgetSimOut <- GDGT[["gadgetSimOut"]]
-	gadgetSimOut[[curGadgetStockName]] <- updateFLStock(curGadgetStockName, stats, as.character(curYear), gadgetSimOut[[curGadgetStockName]]$stk, gadgetSimOut[[curGadgetStockName]]$idx, stockParams[["stockStep"]])
+	gadgetSimOut[[curGadgetStockName]] <- updateFLStock(curGadgetStockName, stats, as.character(curYear), gadgetSimOut[[curGadgetStockName]]$stk, gadgetSimOut[[curGadgetStockName]]$idx, season)
 
 	# Put the updated FLstock and FLindex information
 	GDGT[["gadgetSimOut"]] <- gadgetSimOut
 
-	SR@ssb[, as.character(curYear)]  <- ssb(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear)]
-	SR@rec[, as.character(curYear)]  <- rec(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear)]
-	biol@wt[, as.character(curYear)] <- stock.wt(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear)]
-	biol@n[, as.character(curYear)] <- stock.n(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear)]
+	SR@ssb[, as.character(curYear),,season]  <- ssb(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear),,season]
+	SR@rec[, as.character(curYear),,season]  <- rec(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear),,season]
+	biol@wt[, as.character(curYear),,season] <- stock.wt(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear),,season]
+	biol@n[, as.character(curYear),,season] <- stock.n(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear),,season]
 
 	# If reaches the end of gadget simulation
 	print("Current gadget information:\n")
