@@ -351,9 +351,9 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 
 		# Create the list for the stats
 		GDGT[["currentStats"]] <- list()
-	}
 
-	GDGT$firstRun <- FALSE
+    GDGT$firstRun <- FALSE
+	}
 
 	# Run for this timestep and collect the stats
 	simInfo <- getEcosystemInfo()
