@@ -362,7 +362,8 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 
 	print(paste("Gadget step run: Year now is", curYear, year, " gadget step : season", curStep, ":", season))
  
-	stats <- runStep()
+	# Run step, and get stock information after a step
+	stats <- runStep(stockAfterStep = TRUE)
 
 	# Put the statistics information for this year
 	GDGT[["currentStats"]][[as.character(year)]][[as.character(season)]] <- stats
@@ -371,13 +372,13 @@ gadgetGrowth <- function(biols, GDGTs, SRs, fleets, year, season, stknm, ...){
 
 	# Update FLStock(and FLIdx) (using the latest simout)
 	gadgetSimOut <- GDGT[["gadgetSimOut"]]
-	gadgetSimOut[[curGadgetStockName]] <- updateFLStock(curGadgetStockName, stats, as.character(curYear), gadgetSimOut[[curGadgetStockName]]$stk, gadgetSimOut[[curGadgetStockName]]$idx, season)
+	gadgetSimOut[[curGadgetStockName]] <- updateFLStock(curGadgetStockName, stats, as.character(curYear), gadgetSimOut[[curGadgetStockName]]$stk, gadgetSimOut[[curGadgetStockName]]$idx, as.numeric(season))
 
 	# Put the updated FLstock and FLindex information
 	GDGT[["gadgetSimOut"]] <- gadgetSimOut
 
-	SR@ssb[, as.character(curYear),,season]  <- ssb(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear),,season]
-	SR@rec[, as.character(curYear),,season]  <- rec(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear),,season]
+	#SR@ssb[, as.character(curYear),,season]  <- ssb(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear),,season]
+	#SR@rec[, as.character(curYear),,season]  <- rec(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear),,season]
 	biol@wt[, as.character(curYear),,season] <- stock.wt(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear),,season]
 	biol@n[, as.character(curYear),,season] <- stock.n(gadgetSimOut[[curGadgetStockName]]$stk)[, as.character(curYear),,season]
 
