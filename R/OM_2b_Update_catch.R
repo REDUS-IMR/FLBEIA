@@ -116,7 +116,7 @@ gadgetCatch.CAA <- function(fleets, biols, GDGTs, SRs, BDs, biols.ctrl, fleets.c
     # Get TAC from advice
     print(st)
     TACs <- as.numeric(advice$TAC[st, as.character(startYear + year - 1)])
-    if(is.na(TACs)) TACs <- 0
+    if(is.na(TACs) || is.infinite(TACs)) TACs <- 0
     print(TACs)
 
     # Control the catch amount
@@ -128,6 +128,7 @@ gadgetCatch.CAA <- function(fleets, biols, GDGTs, SRs, BDs, biols.ctrl, fleets.c
     tacPortion <- eval(parse(text=paste0(curGadgetStockName, ".forecasts.tac.proportion")))
     print(tacPortion)
     print(paste(curGadgetFleetName, startYear + year - 1, ss, 1, tacPortion[ss] * TAC))
+
     lapply(curGadgetFleetName, updateAmount, startYear + year - 1, ss, 1, tacPortion[[ss]] * TAC)
 
   } else if(GDGTs$fleetMode == "mixed") {
@@ -170,7 +171,7 @@ gadgetCatch.CAA <- function(fleets, biols, GDGTs, SRs, BDs, biols.ctrl, fleets.c
       }
 
       # Apply catch (for next year in gadget)
-      if (is.na(catchTot)) catchTot <- 0
+      if (length(catchTot) == 1 && is.na(catchTot)) catchTot <- 0
       print(paste((startYear + year - 2), " catch is: "))
       print(catchTot)
 
